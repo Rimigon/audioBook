@@ -6,12 +6,19 @@ import androidx.room.TypeConverters
 import com.nikit.audiobook.data.db.dao.BookDao
 import com.nikit.audiobook.data.db.dao.BookmarkDao
 import com.nikit.audiobook.data.db.dao.ChapterDao
+import com.nikit.audiobook.data.db.dao.PlaybackProgressDao
 import com.nikit.audiobook.data.db.entity.BookEntity
 import com.nikit.audiobook.data.db.entity.BookmarkEntity
 import com.nikit.audiobook.data.db.entity.ChapterEntity
+import com.nikit.audiobook.data.db.entity.PlaybackProgressEntity
 
 @Database(
-    entities = [BookEntity::class, ChapterEntity::class, BookmarkEntity::class],
+    entities = [
+        BookEntity::class,
+        ChapterEntity::class,
+        BookmarkEntity::class,
+        PlaybackProgressEntity::class,
+    ],
     version = 1,
     exportSchema = true,
 )
@@ -22,6 +29,8 @@ abstract class AudioBookDatabase : RoomDatabase() {
     abstract fun chapterDao(): ChapterDao
 
     abstract fun bookmarkDao(): BookmarkDao
+
+    abstract fun playbackProgressDao(): PlaybackProgressDao
 
     companion object {
         // Явные миграции. НИКОГДА не использовать fallbackToDestructiveMigration —

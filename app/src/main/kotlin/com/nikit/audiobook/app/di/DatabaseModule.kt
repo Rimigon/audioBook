@@ -6,6 +6,7 @@ import com.nikit.audiobook.data.db.AudioBookDatabase
 import com.nikit.audiobook.data.db.dao.BookDao
 import com.nikit.audiobook.data.db.dao.BookmarkDao
 import com.nikit.audiobook.data.db.dao.ChapterDao
+import com.nikit.audiobook.data.db.dao.PlaybackProgressDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,4 +31,7 @@ object DatabaseModule {
     @Provides fun provideChapterDao(db: AudioBookDatabase): ChapterDao = db.chapterDao()
 
     @Provides fun provideBookmarkDao(db: AudioBookDatabase): BookmarkDao = db.bookmarkDao()
+
+    @Provides
+    fun providePlaybackProgressDao(db: AudioBookDatabase): PlaybackProgressDao = db.playbackProgressDao()
 }
