@@ -2,6 +2,7 @@ package com.nikit.audiobook.ui.book
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,17 +11,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,7 +46,7 @@ import com.nikit.audiobook.ui.common.formatDuration
 import com.nikit.audiobook.ui.common.formatTime
 import com.nikit.audiobook.ui.theme.Missing
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun BookDetailScreen(
     onBack: () -> Unit,
@@ -49,7 +54,9 @@ fun BookDetailScreen(
     vm: BookDetailViewModel = hiltViewModel(),
 ) {
     val ui by vm.state.collectAsState()
+    val shelves by vm.shelves.collectAsState()
     var confirmCatalog by remember { mutableStateOf(false) }
+    var showBookmarkDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -107,19 +114,36 @@ fun BookDetailScreen(
             }
             item {
                 if (data.progress != null) {
-                    val pct = (data.progress.percent.coerceIn(0f, 1f))
+                    val pct = data.progress.percent.coerceIn(0f, 1f)
                     Text(
                         "Прогресс: ${formatTime(data.progress.positionMs)} / ${formatTime(data.book.totalDurationMs)}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     LinearProgressIndicator(progress = { pct }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
                 }
-                Button(
-                    onClick = { onPlay(data.book.id) },
-                    enabled = data.book.filesPresent,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (data.progress != null) "Продолжить" else "Слушать")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { onPlay(data.book.id) },
+                        enabled = data.book.filesPresent,
+                        modifier = Modifier.weight(1f),
+                    ) { Text(if (data.progress != null) "Продолжить" else "Слушать") }
+                    OutlinedButton(onClick = { showBookmarkDialog = true }) {
+                        Icon(Icons.Filled.Bookmark, contentDescription = "Закладка")
+                    }
+                }
+            }
+            if (shelves.isNotEmpty()) {
+                item {
+                    Text("Полки", style = MaterialTheme.typography.titleMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        shelves.forEach { shelf ->
+                            FilterChip(
+                                selected = false,
+                                onClick = { vm.toggleShelf(shelf.id) },
+                                label = { Text(shelf.name) },
+                            )
+                        }
+                    }
                 }
             }
             item {
@@ -136,10 +160,19 @@ fun BookDetailScreen(
                 item {
                     Text("Закладки", style = MaterialTheme.typography.titleMedium)
                     data.bookmarks.forEach { bm ->
-                        Text(
-                            "• ${bm.title} — ${formatTime(bm.positionMs)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                "• ${bm.title} — ${formatTime(bm.positionMs)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(onClick = { vm.deleteBookmark(bm.id) }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Удалить закладку")
+                            }
+                        }
                     }
                 }
             }
@@ -161,19 +194,36 @@ fun BookDetailScreen(
         AlertDialog(
             onDismissRequest = { confirmCatalog = false },
             title = { Text("Удалить навсегда?") },
-            text = {
-                Text(
-                    "Книга будет удалена из каталога вместе с прогрессом, закладками и привязкой к полкам. Это действие необратимо.",
-                )
-            },
+            text = { Text("Книга будет удалена из каталога вместе с прогрессом, закладками и привязкой к полкам. Необратимо.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmCatalog = false
                     vm.deleteFromCatalog()
                     onBack()
-                }) { Text("Удалить навсегда") }
+                }) {
+                    Text("Удалить навсегда")
+                }
             },
             dismissButton = { TextButton(onClick = { confirmCatalog = false }) { Text("Отмена") } },
+        )
+    }
+
+    if (showBookmarkDialog) {
+        var title by remember { mutableStateOf("Закладка") }
+        AlertDialog(
+            onDismissRequest = { showBookmarkDialog = false },
+            title = { Text("Новая закладка") },
+            text = {
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Название") })
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val pos = ui?.progress?.positionMs ?: 0L
+                    vm.addBookmark(pos, title.ifBlank { "Закладка" })
+                    showBookmarkDialog = false
+                }) { Text("Добавить") }
+            },
+            dismissButton = { TextButton(onClick = { showBookmarkDialog = false }) { Text("Отмена") } },
         )
     }
 }

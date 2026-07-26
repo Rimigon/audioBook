@@ -9,6 +9,7 @@ import com.nikit.audiobook.data.repo.ChapterRepository
 import com.nikit.audiobook.data.repo.ProgressRepository
 import com.nikit.audiobook.data.repo.ShelfRepository
 import com.nikit.audiobook.data.repo.TagRepository
+import com.nikit.audiobook.domain.model.Bookmark
 import com.nikit.audiobook.domain.usecase.DeleteBookFiles
 import com.nikit.audiobook.domain.usecase.DeleteBookFromCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,12 +43,13 @@ class BookDetailViewModel
                 bookmarkRepository.observeByBook(bookId),
                 progressRepository.observeByBook(bookId),
             ) { book, chapters, bookmarks, progress ->
-                if (book == null) {
-                    null
-                } else {
-                    BookDetailUi(book, chapters, bookmarks, progress)
-                }
+                if (book == null) null else BookDetailUi(book, chapters, bookmarks, progress)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+        val shelves =
+            shelfRepository
+                .observeAll()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         fun deleteFiles() = viewModelScope.launch { deleteBookFiles(bookId) }
 
@@ -57,12 +59,13 @@ class BookDetailViewModel
             positionMs: Long,
             title: String,
         ) = viewModelScope.launch {
-            bookmarkRepository.add(
-                com.nikit.audiobook.domain.model.Bookmark(
-                    bookId = bookId,
-                    positionMs = positionMs,
-                    title = title,
-                ),
-            )
+            bookmarkRepository.add(Bookmark(bookId = bookId, positionMs = positionMs, title = title))
         }
+
+        fun deleteBookmark(id: String) = viewModelScope.launch { bookmarkRepository.delete(id) }
+
+        fun toggleShelf(shelfId: String) =
+            viewModelScope.launch {
+                shelfRepository.addBook(shelfId, bookId)
+            }
     }
