@@ -43,6 +43,10 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime.ktx)
     implementation(libs.okhttp)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
+    implementation(libs.media3.extractor)
+    implementation(libs.media3.common)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
