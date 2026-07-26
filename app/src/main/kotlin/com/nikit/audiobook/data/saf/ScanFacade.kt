@@ -10,6 +10,7 @@ import com.nikit.audiobook.domain.model.FileType
 import com.nikit.audiobook.metadata.chapters.ChapterBuilder
 import com.nikit.audiobook.metadata.chapters.M4bChapterExtractor
 import com.nikit.audiobook.metadata.online.MetadataEnricher
+import com.nikit.audiobook.player.controller.PlayerSettings
 import com.nikit.audiobook.metadata.tags.TagReader
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,8 +64,7 @@ class ScanFacade
             var genre = meta.genre
             var year = meta.year
 
-            // Онлайн-обогащение, если теги неполные (нет автора или нет описания/обложки)
-            if (author.isNullOrBlank() || description.isNullOrBlank() || cover == null) {
+            if (PlayerSettings.onlineEnrichment && (author.isNullOrBlank() || description.isNullOrBlank() || cover == null)) {
                 val online = enricher.enrich(title, author)
                 if (online != null) {
                     if (title.isBlank()) title = online.title
