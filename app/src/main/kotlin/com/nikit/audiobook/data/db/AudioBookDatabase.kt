@@ -4,12 +4,14 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.nikit.audiobook.data.db.dao.BookDao
+import com.nikit.audiobook.data.db.dao.BookmarkDao
 import com.nikit.audiobook.data.db.dao.ChapterDao
 import com.nikit.audiobook.data.db.entity.BookEntity
+import com.nikit.audiobook.data.db.entity.BookmarkEntity
 import com.nikit.audiobook.data.db.entity.ChapterEntity
 
 @Database(
-    entities = [BookEntity::class, ChapterEntity::class],
+    entities = [BookEntity::class, ChapterEntity::class, BookmarkEntity::class],
     version = 1,
     exportSchema = true,
 )
@@ -19,14 +21,14 @@ abstract class AudioBookDatabase : RoomDatabase() {
 
     abstract fun chapterDao(): ChapterDao
 
+    abstract fun bookmarkDao(): BookmarkDao
+
     companion object {
         // Явные миграции. НИКОГДА не использовать fallbackToDestructiveMigration —
         // каталог ценен и не должен пересоздаваться при смене версии.
-        // Пример будущей миграции:
-        //   val MIGRATION_1_2 = object : Migration(1, 2) { override fun migrate(db: SupportSQLiteDatabase) { ... } }
         val MIGRATIONS: Array<androidx.room.migration.Migration> =
             arrayOf(
-                // MIGRATION_1_2,
+                // MIGRATION_1_2 = object : Migration(1, 2) { ... }
             )
     }
 }
