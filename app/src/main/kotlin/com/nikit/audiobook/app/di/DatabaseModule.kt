@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.nikit.audiobook.data.db.AudioBookDatabase
 import com.nikit.audiobook.data.db.dao.BookDao
+import com.nikit.audiobook.data.db.dao.ChapterDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,4 +25,6 @@ object DatabaseModule {
             .build()
 
     @Provides fun provideBookDao(db: AudioBookDatabase): BookDao = db.bookDao()
+
+    @Provides fun provideChapterDao(db: AudioBookDatabase): ChapterDao = db.chapterDao()
 }
