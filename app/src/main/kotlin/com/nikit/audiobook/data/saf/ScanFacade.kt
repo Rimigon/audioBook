@@ -27,6 +27,7 @@ class ScanFacade
         private val folderScanner: FolderScanner,
         private val tagReader: TagReader,
         private val enricher: MetadataEnricher,
+        private val coverStore: com.nikit.audiobook.data.cover.CoverStore,
     ) {
         /** Сканирует папку [treeUri] и импортирует новые книги. */
         suspend fun scanNow(treeUri: Uri): Int {
@@ -58,17 +59,20 @@ class ScanFacade
             var title = d.title
             var author = meta.author
             var description: String? = meta.description ?: meta.album
-            var cover: String? = null // coverBytes сохраняется отдельно (coverPath ставит адаптер кэша обложек в Подплане 4)
+            var cover: String? = meta.coverBytes?.let { coverStore.saveBytes(it, d.sourceUri) }
             var genre = meta.genre
             var year = meta.year
 
-            // Онлайн-обогащение, если теги неполные (нет автора или нет описания)
-            if (author.isNullOrBlank() || description.isNullOrBlank()) {
+            // Онлайн-обогащение, если теги неполные (нет автора или нет описания/обложки)
+            if (author.isNullOrBlank() || description.isNullOrBlank() || cover == null) {
                 val online = enricher.enrich(title, author)
                 if (online != null) {
                     if (title.isBlank()) title = online.title
                     if (author.isNullOrBlank()) author = online.author
                     if (description.isNullOrBlank()) description = online.description
+                    if (cover == null && !online.coverUrl.isNullOrBlank()) {
+                        cover = coverStore.download(online.coverUrl, d.sourceUri)
+                    }
                 }
             }
 

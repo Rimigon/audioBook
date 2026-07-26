@@ -27,6 +27,9 @@ import javax.inject.Singleton
 object PlayerSettings {
     var defaultSpeed: Float = 1f
     var defaultVolumeBoost: Float = 1f
+    var seekStepMs: Long = 30_000L
+    var autoResume: Boolean = true
+    var onlineEnrichment: Boolean = true
 }
 
 /**
@@ -109,6 +112,22 @@ class PlayerController
 
         fun seekTo(positionMs: Long) {
             engine?.seekTo(engine!!.chapterIndex, positionMs)
+        }
+
+        fun seekBack(stepMs: Long = PlayerSettings.seekStepMs) {
+            engine?.seekBack(stepMs)
+        }
+
+        fun seekForward(stepMs: Long = PlayerSettings.seekStepMs) {
+            engine?.seekForward(stepMs)
+        }
+
+        fun nextChapter() {
+            engine?.nextChapter()
+        }
+
+        fun previousChapter() {
+            engine?.previousChapter()
         }
 
         fun setSpeed(speed: Float) {

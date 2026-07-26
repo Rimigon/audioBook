@@ -13,6 +13,8 @@ internal class FakeEngine : PlayerEngine {
     override val durationMs: Long get() = _dur
     override val chapterIndex: Int get() = _chapter
     override val isPlaying: Boolean get() = _playing
+    override val hasNextChapter: Boolean get() = _chapter < _items.size - 1
+    override val hasPreviousChapter: Boolean get() = _chapter > 0
 
     override fun setMediaItems(uris: List<String>) {
         _items = uris
@@ -32,6 +34,22 @@ internal class FakeEngine : PlayerEngine {
 
     override fun pause() {
         _playing = false
+    }
+
+    override fun seekBack(ms: Long) {
+        _pos = (_pos - ms).coerceAtLeast(0L)
+    }
+
+    override fun seekForward(ms: Long) {
+        _pos = (_pos + ms).coerceAtMost(_dur)
+    }
+
+    override fun nextChapter() {
+        if (hasNextChapter) _chapter++
+    }
+
+    override fun previousChapter() {
+        if (hasPreviousChapter) _chapter--
     }
 
     override fun setPlaybackSpeed(speed: Float) {

@@ -8,6 +8,8 @@ interface PlayerEngine : PlayerHandle {
     val durationMs: Long
     val chapterIndex: Int
     val isPlaying: Boolean
+    val hasNextChapter: Boolean
+    val hasPreviousChapter: Boolean
 
     fun setMediaItems(uris: List<String>)
 
@@ -19,4 +21,12 @@ interface PlayerEngine : PlayerHandle {
     fun play()
 
     fun pause()
+
+    fun seekBack(ms: Long)
+
+    fun seekForward(ms: Long)
+
+    fun nextChapter()
+
+    fun previousChapter()
 }

@@ -22,8 +22,8 @@ activityCompose = "1.9.3"
 navigationCompose = "2.8.5"
 lifecycleViewmodel = "2.8.7"
 hiltNavigationCompose = "1.2.0"
-coil = "2.7.0"
 hiltWork = "1.2.0"
+coil = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -59,6 +59,8 @@ activity-compose = { module = "androidx.activity:activity-compose", version.ref 
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodel" }
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltWork" }
+hilt-androidx-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltWork" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 [plugins]
