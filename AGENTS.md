@@ -1,7 +1,7 @@
 # AGENTS.md
 
 > Автоматически поддерживаемая сводка контекста для AI-агентов.
-> Последнее обновление: 2026-07-26 15:35:12 UTC
+> Последнее обновление: 2026-07-26 16:45:27 UTC
 
 ## Project Overview
 
@@ -49,5 +49,7 @@
 ## Project Structure
 
 <!-- agents-md:auto:project-structure -->
+- `app/`
 - `docs/`
+- `gradle/`
 <!-- /agents-md:auto:project-structure -->
