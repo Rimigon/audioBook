@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.nikit.audiobook.data.saf.ScanFacade
 import com.nikit.audiobook.data.saf.ScanSettings
 import com.nikit.audiobook.player.controller.PlayerSettings
+import com.nikit.audiobook.player.work.RescanScheduler
 import com.nikit.audiobook.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,10 +23,12 @@ class SettingsViewModel
     constructor(
         private val scanFacade: ScanFacade,
         private val scanSettings: ScanSettings,
+        private val rescanScheduler: RescanScheduler,
     ) : ViewModel() {
         val scanning = MutableStateFlow(false)
         val lastMessage = MutableStateFlow<String?>(null)
 
+        @Suppress("UNCHECKED_CAST")
         val uiState: StateFlow<SettingsUiState> =
             combine(
                 scanSettings.treeUri,
@@ -97,7 +100,11 @@ class SettingsViewModel
 
         fun setGoogleBooksKey(v: String) = viewModelScope.launch { scanSettings.setGoogleBooksKey(v) }
 
-        fun setRescanInterval(min: Int) = viewModelScope.launch { scanSettings.setRescanInterval(min) }
+        fun setRescanInterval(min: Int) =
+            viewModelScope.launch {
+                scanSettings.setRescanInterval(min)
+                rescanScheduler.schedule(min)
+            }
     }
 
 data class SettingsUiState(
