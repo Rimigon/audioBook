@@ -76,7 +76,7 @@ class ProgressSaverTest {
             val id = seed()
             coord.tick(id, 1000L, 0, 100_000L, nowMs = 0L)
             coord.tick(id, 2000L, 0, 100_000L, nowMs = 1_000L)
-            coord.stop(2500L, 0, 100_000L)
+            coord.stop(id, 2500L, 0, 100_000L)
             assertThat(progress.get(id)?.positionMs).isEqualTo(2500L)
         }
 

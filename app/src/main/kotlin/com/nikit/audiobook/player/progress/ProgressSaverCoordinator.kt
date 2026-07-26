@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withContext
 
 /**
  * Координатор сохранения прогресса воспроизведения.
@@ -38,11 +37,11 @@ class ProgressSaverCoordinator(
     }
 
     suspend fun stop(
+        bookId: String,
         positionMs: Long,
         chapterIndex: Int,
         durationMs: Long,
     ) {
-        val bookId = currentBookId ?: return
         save(bookId, positionMs, chapterIndex, durationMs)
     }
 
@@ -51,7 +50,7 @@ class ProgressSaverCoordinator(
         positionMs: Long,
         chapterIndex: Int,
         durationMs: Long,
-    ) = withContext(Dispatchers.IO) {
+    ) {
         val percent = if (durationMs > 0) positionMs.toFloat() / durationMs else 0f
         progressRepository.upsert(
             PlaybackProgress(
