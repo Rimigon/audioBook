@@ -5,13 +5,9 @@ import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.nikit.audiobook.player.controller.PlayerSettings
 import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * Минимальный фоновый плеер: ExoPlayer + MediaSession + foreground.
- * Логика загрузки книги, прогресса, таймера сна и эффектов — в [com.nikit.audiobook.player.controller.PlayerController]
- * (UI-процесс), который общается с сервисом через MediaController.
- */
 @AndroidEntryPoint
 class AudioBookPlaybackService : MediaSessionService() {
     private lateinit var player: ExoPlayer
@@ -31,6 +27,8 @@ class AudioBookPlaybackService : MediaSessionService() {
                     // handleAudioFocus =
                     true,
                 ).setHandleAudioBecomingNoisy(true)
+                .setSeekBackIncrementMs(PlayerSettings.seekStepMs)
+                .setSeekForwardIncrementMs(PlayerSettings.seekStepMs)
                 .build()
         mediaSession = MediaSession.Builder(this, player).build()
     }
