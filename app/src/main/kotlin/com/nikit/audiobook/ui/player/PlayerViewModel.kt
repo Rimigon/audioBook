@@ -2,6 +2,7 @@ package com.nikit.audiobook.ui.player
 
 import android.content.ComponentName
 import android.content.Context
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.session.MediaController
@@ -9,6 +10,7 @@ import androidx.media3.session.SessionToken
 import com.nikit.audiobook.data.repo.BookRepository
 import com.nikit.audiobook.player.controller.MediaControllerEngine
 import com.nikit.audiobook.player.controller.PlayerController
+import com.nikit.audiobook.player.controller.PlayerUiState
 import com.nikit.audiobook.player.service.AudioBookPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,12 +28,11 @@ class PlayerViewModel
         private val bookRepository: BookRepository,
     ) : ViewModel() {
         val connected = MutableStateFlow(false)
+        val state: StateFlow<PlayerUiState> = playerController.state
 
         init {
             connect()
         }
-
-        val state: StateFlow<com.nikit.audiobook.player.controller.PlayerUiState> = playerController.state
 
         private fun connect() {
             val token = SessionToken(context, ComponentName(context, AudioBookPlaybackService::class.java))
@@ -42,12 +43,10 @@ class PlayerViewModel
                     playerController.attach(MediaControllerEngine(controller))
                     connected.value = true
                 }
-            }, ContextCompat.mainExecutor(context))
+            }, ContextCompat.getMainExecutor(context))
         }
 
-        fun playBook(bookId: String) {
-            viewModelScope.launch { playerController.loadBook(bookId) }
-        }
+        fun playBook(bookId: String) = viewModelScope.launch { playerController.loadBook(bookId) }
 
         fun pause() = viewModelScope.launch { playerController.pause() }
 
@@ -55,11 +54,21 @@ class PlayerViewModel
 
         fun seek(positionMs: Long) = playerController.seekTo(positionMs)
 
+        fun seekBack() = playerController.seekBack()
+
+        fun seekForward() = playerController.seekForward()
+
+        fun nextChapter() = playerController.nextChapter()
+
+        fun previousChapter() = playerController.previousChapter()
+
         fun setSpeed(speed: Float) = playerController.setSpeed(speed)
 
         fun setVolumeBoost(b: Float) = playerController.setVolumeBoost(b)
 
         fun startSleep(ms: Long) = playerController.startSleep(ms)
+
+        fun startSleepUntilChapterEnd(remainingMs: Long) = playerController.startSleepUntilChapterEnd(remainingMs)
 
         fun cancelSleep() = playerController.cancelSleep()
 
@@ -70,10 +79,3 @@ class PlayerViewModel
             super.onCleared()
         }
     }
-
-// Утилита для main executor без отдельного импорта
-private object ContextCompat {
-    fun mainExecutor(context: Context): java.util.concurrent.Executor =
-        androidx.core.content.ContextCompat
-            .getMainExecutor(context)
-}

@@ -1,7 +1,6 @@
 package com.nikit.audiobook.ui.player
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,17 +8,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -49,6 +52,11 @@ fun PlayerScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { vm.addBookmark("Закладка") }) {
+                        Icon(Icons.Filled.Bookmark, contentDescription = "Закладка")
+                    }
+                },
             )
         },
     ) { padding ->
@@ -76,40 +84,41 @@ fun PlayerScreen(
                 valueRange = 0f..dur.toFloat(),
             )
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                IconButton(onClick = { /* prev chapter via controller - not wired */ }) {
-                    Icon(Icons.Filled.SkipPrevious, contentDescription = "Пред.")
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(onClick = { vm.previousChapter() }) {
+                    Icon(Icons.Filled.SkipPrevious, contentDescription = "Пред. глава")
+                }
+                IconButton(onClick = { vm.seekBack() }) {
+                    Icon(Icons.Filled.FastRewind, contentDescription = "Назад 30с")
                 }
                 IconButton(onClick = { if (state.isPlaying) vm.pause() else vm.resume() }) {
-                    Icon(
-                        if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = "Play/Pause",
-                    )
+                    Icon(if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = "Play/Pause")
                 }
-                IconButton(onClick = { /* next */ }) {
-                    Icon(Icons.Filled.SkipNext, contentDescription = "След.")
+                IconButton(onClick = { vm.seekForward() }) {
+                    Icon(Icons.Filled.FastForward, contentDescription = "Вперёд 30с")
+                }
+                IconButton(onClick = { vm.nextChapter() }) {
+                    Icon(Icons.Filled.SkipNext, contentDescription = "След. глава")
                 }
             }
 
             Text("Скорость", style = MaterialTheme.typography.labelLarge)
-            Slider(
-                value = state.speed,
-                onValueChange = { vm.setSpeed(it) },
-                valueRange = 0.5f..4.0f,
-            )
+            Slider(value = state.speed, onValueChange = { vm.setSpeed(it) }, valueRange = 0.5f..4.0f)
             Text("Усиление громкости", style = MaterialTheme.typography.labelLarge)
-            Slider(
-                value = state.volumeBoost,
-                onValueChange = { vm.setVolumeBoost(it) },
-                valueRange = 1.0f..2.0f,
-            )
+            Slider(value = state.volumeBoost, onValueChange = { vm.setVolumeBoost(it) }, valueRange = 1.0f..2.0f)
 
+            Text("Таймер сна", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(onClick = { vm.startSleep(5 * 60_000L) }, label = { Text("5м") })
+                AssistChip(onClick = { vm.startSleep(15 * 60_000L) }, label = { Text("15м") })
+                AssistChip(onClick = { vm.startSleep(30 * 60_000L) }, label = { Text("30м") })
+                AssistChip(onClick = { vm.startSleep(60 * 60_000L) }, label = { Text("60м") })
+            }
             state.sleepLeftMs?.let {
-                Text(
-                    "Сон: ${formatTime(it)}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(onClick = {}, label = { Text("Сон: ${formatTime(it)}") })
+                    OutlinedButton(onClick = { vm.cancelSleep() }) { Text("Отмена") }
+                }
             }
         }
     }
