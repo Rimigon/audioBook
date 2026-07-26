@@ -100,7 +100,7 @@ fun AppNav() {
                     onRescanClick = { navController.navigate(Routes.SETTINGS) },
                 )
             }
-            composable(Routes.SHELVES) { ShelvesScreen() }
+            composable(Routes.SHELVES) { ShelvesScreen(onBookClick = { id -> navController.navigate(Routes.book(id)) }) }
             composable(Routes.SETTINGS) { SettingsScreen() }
             composable(
                 Routes.BOOK,

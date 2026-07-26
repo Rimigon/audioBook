@@ -1,5 +1,6 @@
 package com.nikit.audiobook.ui.shelves
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,7 +32,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShelvesScreen(vm: ShelvesViewModel = hiltViewModel()) {
+fun ShelvesScreen(
+    onBookClick: (String) -> Unit,
+    vm: ShelvesViewModel = hiltViewModel(),
+) {
     val shelves by vm.shelves.collectAsState()
     var newName by remember { mutableStateOf("") }
 
@@ -61,7 +65,26 @@ fun ShelvesScreen(vm: ShelvesViewModel = hiltViewModel()) {
             ) {
                 items(shelves, key = { it.id }) { shelf ->
                     Card(Modifier.fillMaxWidth()) {
-                        Text(shelf.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(16.dp))
+                        Column(Modifier.padding(16.dp)) {
+                            Text(shelf.name, style = MaterialTheme.typography.titleMedium)
+                            val books by vm.booksOfShelf(shelf.id).collectAsState(initial = emptyList())
+                            if (books.isEmpty()) {
+                                Text(
+                                    "Пусто",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            } else {
+                                books.forEach { b ->
+                                    Text(
+                                        "• ${b.title}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(top = 2.dp).clickable { onBookClick(b.id) },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
