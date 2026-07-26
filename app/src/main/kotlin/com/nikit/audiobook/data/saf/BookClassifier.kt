@@ -30,6 +30,35 @@ fun isAudioFile(name: String): Boolean {
 
 fun stripExt(name: String): String = name.substringBeforeLast('.')
 
+/** Natural-order сравнение строк (ch2 < ch10). Public для переиспользования. */
+fun naturalCompare(
+    a: String,
+    b: String,
+): Int {
+    var i = 0
+    var j = 0
+    while (i < a.length && j < b.length) {
+        val ca = a[i]
+        val cb = b[j]
+        if (ca.isDigit() && cb.isDigit()) {
+            var endI = i
+            while (endI < a.length && a[endI].isDigit()) endI++
+            var endJ = j
+            while (endJ < b.length && b[endJ].isDigit()) endJ++
+            val na = a.substring(i, endI).toLong()
+            val nb = b.substring(j, endJ).toLong()
+            if (na != nb) return na.compareTo(nb)
+            i = endI
+            j = endJ
+        } else {
+            if (ca != cb) return ca.compareTo(cb)
+            i++
+            j++
+        }
+    }
+    return a.length - b.length
+}
+
 /**
  * Чистая эвристика классификации книг по структуре дерева.
  * - Папка с ≥1 аудиофайлом → книга FOLDER (аудиофайлы = главы, natural-order).
@@ -88,38 +117,10 @@ object BookClassifier {
     }
 }
 
-/** Natural-order компаратор (ch2 < ch10), числовые куски сравниваются как числа. */
+/** Natural-order компаратор (ch2 < ch10) для файлов. */
 private object NaturalOrder : Comparator<FsNode.File> {
     override fun compare(
         a: FsNode.File,
         b: FsNode.File,
     ): Int = naturalCompare(a.name, b.name)
-
-    private fun naturalCompare(
-        a: String,
-        b: String,
-    ): Int {
-        var i = 0
-        var j = 0
-        while (i < a.length && j < b.length) {
-            val ca = a[i]
-            val cb = b[j]
-            if (ca.isDigit() && cb.isDigit()) {
-                var endI = i
-                while (endI < a.length && a[endI].isDigit()) endI++
-                var endJ = j
-                while (endJ < b.length && b[endJ].isDigit()) endJ++
-                val na = a.substring(i, endI).toLong()
-                val nb = b.substring(j, endJ).toLong()
-                if (na != nb) return na.compareTo(nb)
-                i = endI
-                j = endJ
-            } else {
-                if (ca != cb) return ca.compareTo(cb)
-                i++
-                j++
-            }
-        }
-        return a.length - b.length
-    }
 }
