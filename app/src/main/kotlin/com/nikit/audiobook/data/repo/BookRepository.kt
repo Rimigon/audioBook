@@ -22,6 +22,8 @@ class BookRepository
 
         suspend fun getBook(id: String): Book? = bookDao.getById(id)?.toDomain()
 
+        suspend fun getBookBySourceUri(uri: String): Book? = bookDao.getBySourceUri(uri)?.toDomain()
+
         suspend fun upsert(
             book: Book,
             chapters: List<Chapter> = emptyList(),

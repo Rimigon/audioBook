@@ -21,6 +21,9 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun getById(id: String): BookEntity?
 
+    @Query("SELECT * FROM books WHERE sourceUri = :uri LIMIT 1")
+    suspend fun getBySourceUri(uri: String): BookEntity?
+
     @Query("UPDATE books SET filesPresent = 0, sourceUri = NULL WHERE id = :id")
     suspend fun markFilesDeleted(id: String)
 

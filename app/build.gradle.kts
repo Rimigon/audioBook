@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.media3.extractor)
     implementation(libs.media3.common)
+    implementation(libs.documentfile)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
