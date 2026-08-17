@@ -27,6 +27,18 @@ interface BookDao {
     @Query("UPDATE books SET filesPresent = 0, sourceUri = NULL WHERE id = :id")
     suspend fun markFilesDeleted(id: String)
 
+    @Query("UPDATE books SET status = CASE WHEN status = 'COMPLETED' THEN status ELSE 'READING' END, lastPlayedAt = :now WHERE id = :id")
+    suspend fun markPlayed(
+        id: String,
+        now: Long,
+    )
+
+    @Query("UPDATE books SET status = 'COMPLETED', completedAt = :now, lastPlayedAt = :now WHERE id = :id")
+    suspend fun markCompleted(
+        id: String,
+        now: Long,
+    )
+
     @Query("DELETE FROM books WHERE id = :id")
     suspend fun deleteById(id: String)
 }

@@ -3,6 +3,7 @@ package com.nikit.audiobook.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nikit.audiobook.data.repo.BookRepository
+import com.nikit.audiobook.data.repo.ProgressRepository
 import com.nikit.audiobook.domain.model.Book
 import com.nikit.audiobook.domain.model.BookStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,22 +21,21 @@ class LibraryViewModel
     @Inject
     constructor(
         private val bookRepository: BookRepository,
+        private val progressRepository: ProgressRepository,
     ) : ViewModel() {
         val sort = MutableStateFlow(LibrarySort.RECENT)
         val statusFilter = MutableStateFlow<BookStatus?>(null)
         val showOnlyPresent = MutableStateFlow(false)
 
         val books: StateFlow<List<Book>> =
-            combine(bookRepository.observeAll(), sort, statusFilter, showOnlyPresent) { list, s, f, present ->
-                var filtered = list
-                if (f != null) filtered = filtered.filter { it.status == f }
-                if (present) filtered = filtered.filter { it.filesPresent }
-                when (s) {
-                    LibrarySort.RECENT -> filtered.sortedByDescending { it.lastPlayedAt ?: it.addedAt }
-                    LibrarySort.TITLE -> filtered.sortedBy { it.title.lowercase() }
-                    LibrarySort.AUTHOR -> filtered.sortedBy { (it.author ?: "").lowercase() }
-                    LibrarySort.PROGRESS -> filtered.sortedByDescending { it.status == BookStatus.READING }
-                }
+            combine(
+                bookRepository.observeAll(),
+                progressRepository.observeAll(),
+                sort,
+                statusFilter,
+                showOnlyPresent,
+            ) { list, progress, s, f, present ->
+                applyLibraryFilters(list, progress.associateBy { it.bookId }, s, f, present, "")
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         fun setSort(s: LibrarySort) {

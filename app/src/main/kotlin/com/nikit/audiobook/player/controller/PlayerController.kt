@@ -57,6 +57,7 @@ class PlayerController
         private val sleep = SleepTimer()
         private var currentBookId: String? = null
         private var currentDurationMs: Long = 0L
+        private var completedNotified = false
         private var scope: CoroutineScope? = null
         private var pollJob: Job? = null
 
@@ -80,6 +81,7 @@ class PlayerController
             if (chapters.isEmpty()) return
             currentBookId = bookId
             currentDurationMs = book.totalDurationMs
+            completedNotified = false
             val uris = chapters.mapNotNull { it.filePath }
             e.setMediaItems(uris)
             val progress = progressRepository.get(bookId)
@@ -93,6 +95,7 @@ class PlayerController
                     PlayerEvent.BookLoaded(bookId, book.title, book.totalDurationMs, startChapter, book.filesPresent),
                 )
             e.play()
+            bookRepository.markPlayed(bookId)
             _state.value =
                 PlayerStateReducer.reduce(_state.value, PlayerEvent.IsPlayingChanged(true))
             startPolling()
@@ -191,6 +194,10 @@ class PlayerController
             val bookId = currentBookId ?: return
             val dur = if (e.durationMs > 0) e.durationMs else currentDurationMs
             saver.tick(bookId, e.positionMs, e.chapterIndex, dur, nowMs)
+            if (!e.isPlaying && dur > 0 && e.positionMs >= dur - 1_500L && !completedNotified) {
+                completedNotified = true
+                bookRepository.markCompleted(bookId)
+            }
             if (sleep.isRunning) {
                 val decision = sleep.tick()
                 when (decision) {

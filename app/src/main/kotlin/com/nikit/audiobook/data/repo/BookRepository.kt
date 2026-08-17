@@ -38,6 +38,16 @@ class BookRepository
             chapterDao.clearFilePathsForBook(bookId)
         }
 
+        /** Начало/продолжение прослушивания: актуализировать lastPlayedAt, статус — READING (дослушанные не сбрасываются). */
+        suspend fun markPlayed(bookId: String) {
+            bookDao.markPlayed(bookId, System.currentTimeMillis())
+        }
+
+        /** Книга дослушана до конца. */
+        suspend fun markCompleted(bookId: String) {
+            bookDao.markCompleted(bookId, System.currentTimeMillis())
+        }
+
         /** Удалить книгу из каталога навсегда (каскад чистит главы/закладки/прогресс/полки/теги). */
         suspend fun deleteBookPermanently(bookId: String) {
             bookDao.deleteById(bookId)

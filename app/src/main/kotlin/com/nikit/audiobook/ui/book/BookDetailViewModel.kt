@@ -1,5 +1,7 @@
 package com.nikit.audiobook.ui.book
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +15,7 @@ import com.nikit.audiobook.domain.model.Bookmark
 import com.nikit.audiobook.domain.usecase.DeleteBookFiles
 import com.nikit.audiobook.domain.usecase.DeleteBookFromCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -32,6 +35,7 @@ class BookDetailViewModel
         private val tagRepository: TagRepository,
         private val deleteBookFiles: DeleteBookFiles,
         private val deleteBookFromCatalog: DeleteBookFromCatalog,
+        @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val bookId: String = checkNotNull(savedStateHandle["bookId"])
@@ -51,7 +55,12 @@ class BookDetailViewModel
                 .observeAll()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-        fun deleteFiles() = viewModelScope.launch { deleteBookFiles(bookId) }
+        fun deleteFiles() =
+            viewModelScope.launch {
+                if (!deleteBookFiles(bookId)) {
+                    Toast.makeText(context, "Не удалось удалить файлы с устройства", Toast.LENGTH_LONG).show()
+                }
+            }
 
         fun deleteFromCatalog() = viewModelScope.launch { deleteBookFromCatalog(bookId) }
 

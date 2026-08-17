@@ -12,6 +12,9 @@ interface PlaybackProgressDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(progress: PlaybackProgressEntity)
 
+    @Query("SELECT * FROM playback_progress")
+    fun observeAll(): Flow<List<PlaybackProgressEntity>>
+
     @Query("SELECT * FROM playback_progress WHERE bookId = :bookId")
     fun observeByBook(bookId: String): Flow<PlaybackProgressEntity?>
 

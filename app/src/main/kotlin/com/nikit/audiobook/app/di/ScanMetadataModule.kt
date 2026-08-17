@@ -2,6 +2,8 @@ package com.nikit.audiobook.app.di
 
 import android.content.Context
 import com.nikit.audiobook.data.db.dao.MetadataCacheDao
+import com.nikit.audiobook.data.saf.AndroidFileDeleter
+import com.nikit.audiobook.data.saf.FileDeleter
 import com.nikit.audiobook.data.saf.FolderScanner
 import com.nikit.audiobook.data.saf.ScanSettings
 import com.nikit.audiobook.metadata.online.GoogleBooksSource
@@ -54,6 +56,9 @@ object ScanMetadataModule {
 abstract class ScanMetadataBindingsModule {
     @Binds
     abstract fun bindTagReader(impl: AndroidTagReader): TagReader
+
+    @Binds
+    abstract fun bindFileDeleter(impl: AndroidFileDeleter): FileDeleter
 
     companion object {
         @Provides @IntoSet

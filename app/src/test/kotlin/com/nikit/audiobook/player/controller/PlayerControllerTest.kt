@@ -126,6 +126,43 @@ class PlayerControllerTest {
             assertThat(engine._playing).isFalse()
         }
 
+    @Test fun loadBookMarksPlayed() =
+        runTest {
+            val id = seed()
+            controller.loadBook(id)
+            val b = books.getBook(id)
+            assertThat(b!!.lastPlayedAt).isNotNull()
+            assertThat(b.status).isEqualTo(BookStatus.READING)
+        }
+
+    @Test fun tickAtEndMarksCompleted() =
+        runTest {
+            val id = seed()
+            controller.loadBook(id)
+            engine._pos = engine._dur
+            engine._playing = false
+            controller.tick(nowMs = 2_000L)
+            val b = books.getBook(id)
+            assertThat(b!!.status).isEqualTo(BookStatus.COMPLETED)
+            assertThat(b.completedAt).isNotNull()
+        }
+
+    @Test fun completedBookKeepsCompletedOnReListen() =
+        runTest {
+            val id = seed()
+            controller.loadBook(id)
+            engine._pos = engine._dur
+            engine._playing = false
+            controller.tick(nowMs = 2_000L)
+            // дослушанную книгу запускают заново — статус COMPLETED не сбрасывается
+            engine._pos = 0L
+            engine._playing = true
+            controller.loadBook(id)
+            val b = books.getBook(id)
+            assertThat(b!!.status).isEqualTo(BookStatus.COMPLETED)
+            assertThat(b.lastPlayedAt).isNotNull()
+        }
+
     @Test fun addBookmarkPersists() =
         runTest {
             val id = seed()
