@@ -9,7 +9,8 @@
         android:name=".app.AudioBookApp"
         android:label="Аудиокниги"
         android:supportsRtl="true"
-        android:icon="@android:drawable/ic_media_play">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher">
 
         <activity
             android:name=".ui.MainActivity"

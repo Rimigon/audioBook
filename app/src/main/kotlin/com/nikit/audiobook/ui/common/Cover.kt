@@ -2,9 +2,8 @@ package com.nikit.audiobook.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -12,11 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
+/**
+ * Обложка книги. Размер задаётся извне через [modifier] (например,
+ * `Modifier.size(64.dp, 96.dp)` для списка или `Modifier.height(220.dp).width(150.dp)`
+ * для экрана книги). Внутри обложка заполняет весь заданный прямоугольник.
+ */
 @Composable
 fun BookCover(
     title: String,
@@ -33,13 +37,15 @@ fun BookCover(
                 model = coverPath,
                 contentDescription = title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(160.dp).clip(shape),
+                modifier = Modifier.fillMaxSize().clip(shape),
             )
         } else {
             Text(
-                text = title.take(1).uppercase(),
-                style = MaterialTheme.typography.headlineMedium,
+                text = title.take(2).uppercase(),
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(6.dp),
             )
         }
     }

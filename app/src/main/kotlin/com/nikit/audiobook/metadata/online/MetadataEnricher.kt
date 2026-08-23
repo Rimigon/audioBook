@@ -33,7 +33,14 @@ class MetadataEnricher(
                 return@withLock parsePayload(entry.payloadJson)
             }
             for (source in sources) {
-                val result = source.search(TitleNormalizer.normalize(title), author) ?: continue
+                // Один источник может упасть по сети/парсингу — не валить обогащение целиком,
+                // а пробовать следующий.
+                val result =
+                    try {
+                        source.search(TitleNormalizer.normalize(title), author)
+                    } catch (e: Exception) {
+                        null
+                    } ?: continue
                 cache.upsert(
                     MetadataCache(
                         id = UUID.randomUUID().toString(),

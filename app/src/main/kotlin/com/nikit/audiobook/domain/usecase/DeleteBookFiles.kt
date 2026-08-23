@@ -22,7 +22,11 @@ class DeleteBookFiles
         suspend operator fun invoke(bookId: String): Boolean {
             val book = repo.getBook(bookId) ?: return false
             val ok = fileDeleter.delete(targetUris(book, chapterRepository.getByBook(bookId)))
-            if (ok) repo.markFilesDeleted(bookId)
+            if (ok) {
+                repo.markFilesDeleted(bookId)
+                // файлов больше нет — главы тоже удаляем, остаётся только базовая карточка
+                chapterRepository.deleteByBook(bookId)
+            }
             return ok
         }
 

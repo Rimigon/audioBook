@@ -8,7 +8,6 @@ import com.nikit.audiobook.data.db.entity.BookEntity
 import com.nikit.audiobook.domain.model.BookStatus
 import com.nikit.audiobook.domain.model.FileType
 import com.nikit.audiobook.domain.model.PlaybackProgress
-import com.nikit.audiobook.domain.model.Shelf
 import com.nikit.audiobook.domain.model.SourceKind
 import com.nikit.audiobook.domain.model.Tag
 import kotlinx.coroutines.flow.first
@@ -22,7 +21,6 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class RepositoriesSmokeTest {
     private lateinit var db: AudioBookDatabase
-    private lateinit var shelves: ShelfRepository
     private lateinit var progress: ProgressRepository
     private lateinit var tags: TagRepository
     private lateinit var books: BookRepository
@@ -35,7 +33,6 @@ class RepositoriesSmokeTest {
                     AudioBookDatabase::class.java,
                 ).allowMainThreadQueries()
                 .build()
-        shelves = ShelfRepository(db.shelfDao())
         progress = ProgressRepository(db.playbackProgressDao())
         tags = TagRepository(db.tagDao())
         books = BookRepository(db.bookDao(), db.chapterDao())
@@ -70,14 +67,6 @@ class RepositoriesSmokeTest {
             null,
             false,
         )
-
-    @Test fun shelfFlow() =
-        runTest {
-            db.bookDao().upsert(book("a"))
-            shelves.upsert(Shelf("s1", "Прочитал", null, 0))
-            shelves.addBook("s1", "a")
-            assertThat(shelves.observeBooksOfShelf("s1").first()).hasSize(1)
-        }
 
     @Test fun progressFlow() =
         runTest {

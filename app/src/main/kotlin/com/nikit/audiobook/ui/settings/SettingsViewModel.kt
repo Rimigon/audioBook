@@ -1,29 +1,38 @@
 package com.nikit.audiobook.ui.settings
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nikit.audiobook.data.diag.CrashLogger
 import com.nikit.audiobook.data.saf.ScanFacade
 import com.nikit.audiobook.data.saf.ScanSettings
 import com.nikit.audiobook.player.controller.PlayerSettings
 import com.nikit.audiobook.player.work.RescanScheduler
 import com.nikit.audiobook.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val scanFacade: ScanFacade,
         private val scanSettings: ScanSettings,
         private val rescanScheduler: RescanScheduler,
+        private val crashLogger: CrashLogger,
     ) : ViewModel() {
         val scanning = MutableStateFlow(false)
         val lastMessage = MutableStateFlow<String?>(null)
@@ -82,10 +91,20 @@ class SettingsViewModel
             }
 
         private suspend fun scanNow(uri: Uri) {
+            // Проверяем, что у нас всё ещё есть persistable-грант на дерево:
+            // без него DocumentFile.list() вернёт пусто, и рескан «не найдёт» книги.
+            val granted =
+                context.contentResolver.persistedUriPermissions.any {
+                    it.uri == uri && it.isReadPermission
+                }
+            if (!granted) {
+                lastMessage.value = "Нет доступа к папке — выберите её заново"
+                return
+            }
             scanning.value = true
             lastMessage.value = null
             runCatching { scanFacade.scanNow(uri) }
-                .onSuccess { added -> lastMessage.value = "Добавлено книг: $added" }
+                .onSuccess { added -> lastMessage.value = if (added > 0) "Добавлено книг: $added" else "Новых книг не найдено" }
                 .onFailure { lastMessage.value = "Ошибка скана: ${it.message}" }
             scanning.value = false
         }
@@ -105,6 +124,35 @@ class SettingsViewModel
                 scanSettings.setRescanInterval(min)
                 rescanScheduler.schedule(min)
             }
+
+        // --- Журнал крашей ---
+        data class CrashLogEntry(
+            val file: File,
+            val time: String,
+            val preview: String,
+        )
+
+        val crashLogs = MutableStateFlow<List<CrashLogEntry>>(emptyList())
+
+        fun refreshCrashLogs() {
+            crashLogs.value =
+                crashLogger.logs().map { f ->
+                    CrashLogEntry(
+                        file = f,
+                        time = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(Date(f.lastModified())),
+                        preview =
+                            crashLogger.read(f).lineSequence().firstOrNull { "Exception" in it || "Error" in it }
+                                ?: "—",
+                    )
+                }
+        }
+
+        fun readCrashLog(file: File): String = crashLogger.read(file)
+
+        fun clearCrashLogs() {
+            crashLogger.clear()
+            refreshCrashLogs()
+        }
     }
 
 data class SettingsUiState(

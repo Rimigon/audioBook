@@ -69,15 +69,15 @@ class BookmarkDaoTest {
     @Test fun upsertAndObserve() =
         runTest {
             bookDao.upsert(book("a"))
-            bookmarkDao.upsert(BookmarkEntity("bm1", "a", 5000L, "Отметка", "заметка", 1L))
-            assertThat(bookmarkDao.observeByBook("a").first()).hasSize(1)
+            bookmarkDao.upsert(BookmarkEntity("bm1", "a", 5000L, "Отметка", "заметка", 0, null, 1L))
+            assertThat(bookmarkDao.observeByBook("a", 0).first()).hasSize(1)
         }
 
     @Test fun deletingBook_cascadesBookmarks() =
         runTest {
             bookDao.upsert(book("a"))
-            bookmarkDao.upsert(BookmarkEntity("bm1", "a", 5000L, "x", null, 1L))
+            bookmarkDao.upsert(BookmarkEntity("bm1", "a", 5000L, "x", null, 0, null, 1L))
             bookDao.deleteById("a")
-            assertThat(bookmarkDao.observeByBook("a").first()).isEmpty()
+            assertThat(bookmarkDao.observeByBook("a", 0).first()).isEmpty()
         }
 }

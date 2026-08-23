@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.nikit.audiobook.data.db.entity.BookEntity
+import com.nikit.audiobook.domain.model.BookStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -37,6 +38,19 @@ interface BookDao {
     suspend fun markCompleted(
         id: String,
         now: Long,
+    )
+
+    @Query(
+        "UPDATE books SET status = 'WISHLIST' " +
+            "WHERE status = 'READING' AND NOT EXISTS " +
+            "(SELECT 1 FROM playback_progress pp WHERE pp.bookId = books.id)",
+    )
+    suspend fun normalizeStatuses()
+
+    @Query("UPDATE books SET status = :status WHERE id = :id")
+    suspend fun updateStatus(
+        id: String,
+        status: BookStatus,
     )
 
     @Query("DELETE FROM books WHERE id = :id")

@@ -57,5 +57,7 @@ class MediaControllerEngine(
         controller.volume = volume
     }
 
-    override fun audioSessionId(): Int = 0
+    // Audio session id у ExoPlayer в сервисе; сервис публикует его в PlayerSettings,
+    // когда аудио готово (см. AudioBookPlaybackService).
+    override fun audioSessionId(): Int = PlayerSettings.audioSessionId
 }

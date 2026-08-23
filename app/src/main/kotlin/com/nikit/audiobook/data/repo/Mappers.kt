@@ -5,14 +5,12 @@ import com.nikit.audiobook.data.db.entity.BookmarkEntity
 import com.nikit.audiobook.data.db.entity.ChapterEntity
 import com.nikit.audiobook.data.db.entity.MetadataCacheEntity
 import com.nikit.audiobook.data.db.entity.PlaybackProgressEntity
-import com.nikit.audiobook.data.db.entity.ShelfEntity
 import com.nikit.audiobook.data.db.entity.TagEntity
 import com.nikit.audiobook.domain.model.Book
 import com.nikit.audiobook.domain.model.Bookmark
 import com.nikit.audiobook.domain.model.Chapter
 import com.nikit.audiobook.domain.model.MetadataCache
 import com.nikit.audiobook.domain.model.PlaybackProgress
-import com.nikit.audiobook.domain.model.Shelf
 import com.nikit.audiobook.domain.model.Tag
 
 fun BookEntity.toDomain() =
@@ -71,17 +69,13 @@ fun ChapterEntity.toDomain() = Chapter(id, bookId, index, title, startMs, endMs,
 
 fun Chapter.toEntity() = ChapterEntity(id, bookId, index, title, startMs, endMs, filePath)
 
-fun BookmarkEntity.toDomain() = Bookmark(id, bookId, positionMs, title, note, createdAt)
+fun BookmarkEntity.toDomain() = Bookmark(id, bookId, positionMs, title, note, kind, chapterIndex, createdAt)
 
-fun Bookmark.toEntity() = BookmarkEntity(id, bookId, positionMs, title, note, createdAt)
+fun Bookmark.toEntity() = BookmarkEntity(id, bookId, positionMs, title, note, kind, chapterIndex, createdAt)
 
 fun PlaybackProgressEntity.toDomain() = PlaybackProgress(bookId, positionMs, chapterIndex, percent, lastPlayedAt)
 
 fun PlaybackProgress.toEntity() = PlaybackProgressEntity(bookId, positionMs, chapterIndex, percent, lastPlayedAt)
-
-fun ShelfEntity.toDomain() = Shelf(id, name, colorHex, sortIndex)
-
-fun Shelf.toEntity() = ShelfEntity(id, name, colorHex, sortIndex)
 
 fun TagEntity.toDomain() = Tag(id, name)
 

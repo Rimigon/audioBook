@@ -9,5 +9,6 @@ data class BookDetailUi(
     val book: Book,
     val chapters: List<Chapter>,
     val bookmarks: List<Bookmark>,
+    val sessions: List<Bookmark>,
     val progress: PlaybackProgress?,
 )

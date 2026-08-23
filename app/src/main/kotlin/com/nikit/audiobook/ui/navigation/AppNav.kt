@@ -30,11 +30,9 @@ import com.nikit.audiobook.ui.player.PlayerBar
 import com.nikit.audiobook.ui.player.PlayerScreen
 import com.nikit.audiobook.ui.player.PlayerViewModel
 import com.nikit.audiobook.ui.settings.SettingsScreen
-import com.nikit.audiobook.ui.shelves.ShelvesScreen
 
 object Routes {
     const val LIBRARY = "library"
-    const val SHELVES = "shelves"
     const val SETTINGS = "settings"
     const val BOOK = "book/{bookId}"
     const val PLAYER = "player"
@@ -51,7 +49,6 @@ private data class Tab(
 private val tabs =
     listOf(
         Tab(Routes.LIBRARY, "Библиотека", Icons.Default.LibraryBooks),
-        Tab(Routes.SHELVES, "Полки", Icons.Default.Star),
         Tab(Routes.SETTINGS, "Настройки", Icons.Default.Settings),
     )
 
@@ -62,7 +59,7 @@ fun AppNav() {
     val current = backStack?.destination
     val playerVm: PlayerViewModel = hiltViewModel()
 
-    val showBar = current?.route in setOf(Routes.LIBRARY, Routes.SHELVES, Routes.SETTINGS)
+    val showBar = current?.route in setOf(Routes.LIBRARY, Routes.SETTINGS)
 
     Scaffold(
         bottomBar = {
@@ -100,7 +97,6 @@ fun AppNav() {
                     onRescanClick = { navController.navigate(Routes.SETTINGS) },
                 )
             }
-            composable(Routes.SHELVES) { ShelvesScreen(onBookClick = { id -> navController.navigate(Routes.book(id)) }) }
             composable(Routes.SETTINGS) { SettingsScreen() }
             composable(
                 Routes.BOOK,
@@ -108,8 +104,8 @@ fun AppNav() {
             ) {
                 BookDetailScreen(
                     onBack = { navController.popBackStack() },
-                    onPlay = { id ->
-                        playerVm.playBook(id)
+                    onPlay = { id, chapter, position ->
+                        playerVm.playBook(id, chapter, position)
                         navController.navigate(Routes.PLAYER)
                     },
                 )

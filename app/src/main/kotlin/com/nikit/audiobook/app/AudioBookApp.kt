@@ -3,6 +3,7 @@ package com.nikit.audiobook.app
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.nikit.audiobook.data.diag.CrashLogger
 import com.nikit.audiobook.data.saf.ScanSettings
 import com.nikit.audiobook.player.work.RescanScheduler
 import dagger.hilt.android.HiltAndroidApp
@@ -23,11 +24,14 @@ class AudioBookApp :
 
     @Inject lateinit var rescanScheduler: RescanScheduler
 
+    @Inject lateinit var crashLogger: CrashLogger
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()
+        crashLogger.install()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             val interval = scanSettings.rescanIntervalMin.first()
             rescanScheduler.schedule(interval)

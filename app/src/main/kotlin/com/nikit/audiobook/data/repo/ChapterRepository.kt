@@ -16,4 +16,8 @@ class ChapterRepository
         fun observeByBook(bookId: String): Flow<List<Chapter>> = dao.observeByBook(bookId).map { it.map { e -> e.toDomain() } }
 
         suspend fun getByBook(bookId: String): List<Chapter> = dao.getByBook(bookId).map { it.toDomain() }
+
+        suspend fun deleteByBook(bookId: String) {
+            dao.deleteByBook(bookId)
+        }
     }

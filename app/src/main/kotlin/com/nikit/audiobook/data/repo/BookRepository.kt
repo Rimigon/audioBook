@@ -3,6 +3,7 @@ package com.nikit.audiobook.data.repo
 import com.nikit.audiobook.data.db.dao.BookDao
 import com.nikit.audiobook.data.db.dao.ChapterDao
 import com.nikit.audiobook.domain.model.Book
+import com.nikit.audiobook.domain.model.BookStatus
 import com.nikit.audiobook.domain.model.Chapter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -43,9 +44,22 @@ class BookRepository
             bookDao.markPlayed(bookId, System.currentTimeMillis())
         }
 
+        /** Ручная установка статуса пользователем (Читаю/Прочитал/Хочу/Брошено/Пауза). */
+        suspend fun updateStatus(
+            bookId: String,
+            status: BookStatus,
+        ) {
+            bookDao.updateStatus(bookId, status)
+        }
+
         /** Книга дослушана до конца. */
         suspend fun markCompleted(bookId: String) {
             bookDao.markCompleted(bookId, System.currentTimeMillis())
+        }
+
+        /** Возвращает ошибочно помеченные READING книги (без прогресса) в WISHLIST. */
+        suspend fun normalizeStatuses() {
+            bookDao.normalizeStatuses()
         }
 
         /** Удалить книгу из каталога навсегда (каскад чистит главы/закладки/прогресс/полки/теги). */

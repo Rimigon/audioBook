@@ -23,13 +23,20 @@ object PlayerEffects {
         player.setPlaybackSpeed(clamped)
     }
 
-    /** Volume boost 1.0–2.0 (программное усиление выше 1.0). */
+    /**
+     * Volume boost 1.0–2.0 (программное усиление выше 1.0).
+     *
+     * Media3 `MediaController.setVolume` бросает IllegalArgumentException при volume > 1,
+     * поэтому плееру отдаём только 0..1, а усиление выше 1.0 выполняет
+     * [GainAudioProcessor] в цепочке аудио-обработки ExoPlayer (итог = volume × gain).
+     */
     fun applyVolumeBoost(
         player: PlayerHandle,
         boost: Float,
     ) {
         val clamped = boost.coerceIn(1.0f, 2.0f)
-        player.setVolume(clamped)
+        player.setVolume(clamped.coerceAtMost(1.0f))
+        VolumeBoost.gain = clamped
     }
 
     /** Применяет эквалайзер к audio session. Возвращает открытый Equalizer (вызывающий держит ссылку). */

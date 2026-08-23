@@ -8,11 +8,14 @@ import com.nikit.audiobook.data.repo.BookRepository
 import com.nikit.audiobook.data.repo.BookmarkRepository
 import com.nikit.audiobook.data.repo.ChapterRepository
 import com.nikit.audiobook.data.repo.ProgressRepository
+import com.nikit.audiobook.data.saf.ScanSettings
 import com.nikit.audiobook.domain.model.Book
 import com.nikit.audiobook.domain.model.BookStatus
 import com.nikit.audiobook.domain.model.Chapter
 import com.nikit.audiobook.domain.model.FileType
 import com.nikit.audiobook.domain.model.SourceKind
+import com.nikit.audiobook.player.effects.EqualizerPreset
+import com.nikit.audiobook.player.effects.VolumeBoost
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -28,6 +31,7 @@ class PlayerControllerTest {
     private lateinit var chapters: ChapterRepository
     private lateinit var progress: ProgressRepository
     private lateinit var bookmarks: BookmarkRepository
+    private lateinit var settings: ScanSettings
     private lateinit var controller: PlayerController
     private val engine = FakeEngine()
 
@@ -43,13 +47,20 @@ class PlayerControllerTest {
         chapters = ChapterRepository(db.chapterDao())
         progress = ProgressRepository(db.playbackProgressDao())
         bookmarks = BookmarkRepository(db.bookmarkDao())
-        controller = PlayerController(books, chapters, progress, bookmarks)
+        settings = ScanSettings(ApplicationProvider.getApplicationContext())
+        controller = PlayerController(books, chapters, progress, bookmarks, settings)
         controller.attach(engine)
     }
 
     @After fun teardown() {
         controller.detach()
         db.close()
+        VolumeBoost.gain = 1f
+        PlayerSettings.defaultVolumeBoost = 1f
+        PlayerSettings.defaultSpeed = 1f
+        PlayerSettings.autoResume = true
+        PlayerSettings.currentEqualizerPreset = null
+        PlayerSettings.audioSessionId = 0
     }
 
     private suspend fun seed(): String {
@@ -171,6 +182,89 @@ class PlayerControllerTest {
             val bm = controller.addBookmark("Отметка", "заметка")
             assertThat(bm).isNotNull()
             assertThat(bm!!.positionMs).isEqualTo(33_000L)
-            assertThat(bookmarks.observeByBook(id).first()).hasSize(1)
+            assertThat(bookmarks.observeManualByBook(id).first()).hasSize(1)
+        }
+
+    @Test
+    fun dataStoreWriteReadSanity() =
+        runTest {
+            settings.setVolumeBoost(1.5f) // напрямую, без main-лоопера
+            val saved = settings.volumeBoost.first { it == 1.5f }
+            assertThat(saved).isEqualTo(1.5f)
+        }
+
+    @Test
+    fun volumeBoostPersistedAndAppliedOnLoad() =
+        runTest {
+            val id = seed()
+            // Сохраняем усиление через контроллер (запись идёт на settingsScope/IO).
+            controller.setVolumeBoost(1.5f)
+            // Ждём, пока запись реально доедет до DataStore.
+            val saved = settings.volumeBoost.first { it == 1.5f }
+            assertThat(saved).isEqualTo(1.5f)
+
+            // «Перезапуск»: отключаем контроллер и сбрасываем статики — восстановление
+            // теперь выполняет loadBook (детерминированное чтение из DataStore).
+            controller.detach()
+            VolumeBoost.gain = 1f
+            PlayerSettings.defaultVolumeBoost = 1f
+
+            val restored = PlayerController(books, chapters, progress, bookmarks, settings)
+            restored.attach(engine)
+            restored.loadBook(id)
+
+            // Сохранённое усиление применено и к звуку, и к состоянию UI.
+            assertThat(engine._volume).isEqualTo(1.0f) // volume ≤ 1 (ограничение Media3)
+            assertThat(VolumeBoost.gain).isEqualTo(1.5f)
+            assertThat(restored.state.value.volumeBoost).isEqualTo(1.5f)
+            restored.detach()
+        }
+
+    @Test
+    fun speedPersistedAndAppliedOnLoad() =
+        runTest {
+            val id = seed()
+            controller.setSpeed(1.5f)
+            val saved = settings.playbackSpeed.first { it == 1.5f }
+            assertThat(saved).isEqualTo(1.5f)
+
+            controller.detach()
+            PlayerSettings.defaultSpeed = 1f
+
+            val restored = PlayerController(books, chapters, progress, bookmarks, settings)
+            restored.attach(engine)
+            restored.loadBook(id)
+
+            assertThat(engine._speed).isEqualTo(1.5f)
+            assertThat(restored.state.value.speed).isEqualTo(1.5f)
+            restored.detach()
+        }
+
+    @Test
+    fun loadBookRespectsAutoResumeSetting() =
+        runTest {
+            val id = seed()
+            PlayerSettings.autoResume = false
+            controller.loadBook(id)
+            assertThat(engine._playing).isFalse()
+            assertThat(controller.state.value.isPlaying).isFalse()
+
+            PlayerSettings.autoResume = true
+            controller.loadBook(id)
+            assertThat(engine._playing).isTrue()
+            assertThat(controller.state.value.isPlaying).isTrue()
+        }
+
+    @Test
+    fun setEqualizerUpdatesStateEvenWithoutAudioSession() =
+        runTest {
+            val id = seed()
+            controller.loadBook(id)
+            controller.setEqualizer(EqualizerPreset.BASS_BOOST)
+            assertThat(controller.state.value.equalizerPreset).isEqualTo(EqualizerPreset.BASS_BOOST)
+            assertThat(PlayerSettings.currentEqualizerPreset).isEqualTo(EqualizerPreset.BASS_BOOST)
+            // FLAT → пресет сброшен (null в настройках)
+            controller.setEqualizer(EqualizerPreset.FLAT)
+            assertThat(controller.state.value.equalizerPreset).isEqualTo(EqualizerPreset.FLAT)
         }
 }

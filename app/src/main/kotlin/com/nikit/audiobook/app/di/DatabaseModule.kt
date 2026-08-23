@@ -8,7 +8,6 @@ import com.nikit.audiobook.data.db.dao.BookmarkDao
 import com.nikit.audiobook.data.db.dao.ChapterDao
 import com.nikit.audiobook.data.db.dao.MetadataCacheDao
 import com.nikit.audiobook.data.db.dao.PlaybackProgressDao
-import com.nikit.audiobook.data.db.dao.ShelfDao
 import com.nikit.audiobook.data.db.dao.TagDao
 import dagger.Module
 import dagger.Provides
@@ -37,8 +36,6 @@ object DatabaseModule {
 
     @Provides
     fun providePlaybackProgressDao(db: AudioBookDatabase): PlaybackProgressDao = db.playbackProgressDao()
-
-    @Provides fun provideShelfDao(db: AudioBookDatabase): ShelfDao = db.shelfDao()
 
     @Provides fun provideTagDao(db: AudioBookDatabase): TagDao = db.tagDao()
 

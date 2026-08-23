@@ -20,4 +20,7 @@ interface ChapterDao {
 
     @Query("UPDATE chapters SET filePath = NULL WHERE bookId = :bookId")
     suspend fun clearFilePathsForBook(bookId: String)
+
+    @Query("DELETE FROM chapters WHERE bookId = :bookId")
+    suspend fun deleteByBook(bookId: String)
 }

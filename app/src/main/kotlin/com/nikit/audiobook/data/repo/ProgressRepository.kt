@@ -15,7 +15,8 @@ class ProgressRepository
     ) {
         fun observeByBook(bookId: String): Flow<PlaybackProgress?> = dao.observeByBook(bookId).map { it?.toDomain() }
 
-        fun observeAll(): Flow<List<PlaybackProgress>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+        fun observeAll(): Flow<Map<String, PlaybackProgress>> =
+            dao.observeAll().map { list -> list.associateBy({ it.bookId }, { it.toDomain() }) }
 
         suspend fun get(bookId: String): PlaybackProgress? = dao.getByBook(bookId)?.toDomain()
 

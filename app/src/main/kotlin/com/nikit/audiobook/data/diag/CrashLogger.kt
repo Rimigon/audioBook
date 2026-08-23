@@ -45,7 +45,10 @@ class CrashLogger
         fun write(throwable: Throwable) {
             val d = dir
             d.mkdirs()
-            val stamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
+            val stamp =
+                SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date()) +
+                    "_" +
+                    (System.nanoTime() % 1_000_000L) // уникальность при нескольких крашах в одну мс
             val header =
                 buildString {
                     appendLine("Время: ${SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date())}")

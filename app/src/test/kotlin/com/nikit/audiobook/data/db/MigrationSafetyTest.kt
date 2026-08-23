@@ -9,10 +9,10 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class MigrationSafetyTest {
-    @Test fun migrationsArrayExists_andVersionIs1() {
+    @Test fun migrationsArrayExists_andHasMigrationsToCurrentVersion() {
         assertThat(AudioBookDatabase.MIGRATIONS).isNotNull()
-        // v1 — миграций нет, но массив определён (каркас для будущего)
-        assertThat(AudioBookDatabase.MIGRATIONS).isEmpty()
+        // Начиная с v2 есть явная миграция 1→2 (закладки получили kind + chapterIndex).
+        assertThat(AudioBookDatabase.MIGRATIONS).isNotEmpty()
     }
 
     @Test fun databaseBuilderWithoutDestructiveFallback_builds() {

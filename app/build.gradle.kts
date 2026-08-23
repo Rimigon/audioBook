@@ -33,6 +33,14 @@ android {
         compose = true
     }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            // Личное приложение: подписываем релиз тем же ключом, что и debug,
+            // чтобы APK можно было установить напрямую и обновлять поверх debug.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
 }
 
 dependencies {

@@ -10,8 +10,8 @@ import com.nikit.audiobook.domain.model.FileType
 import com.nikit.audiobook.metadata.chapters.ChapterBuilder
 import com.nikit.audiobook.metadata.chapters.M4bChapterExtractor
 import com.nikit.audiobook.metadata.online.MetadataEnricher
-import com.nikit.audiobook.player.controller.PlayerSettings
 import com.nikit.audiobook.metadata.tags.TagReader
+import com.nikit.audiobook.player.controller.PlayerSettings
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,7 +34,11 @@ class ScanFacade
         suspend fun scanNow(treeUri: Uri): Int {
             val nodes = folderScanner.buildTree(treeUri)
             val descriptors = BookClassifier.classify(nodes)
-            return importDescriptors(descriptors)
+            val added = importDescriptors(descriptors)
+            // Старые сборки помечали все импортированные книги как READING ошибочно —
+            // возвращаем WISHLIST тем, у кого нет реального прогресса прослушивания.
+            bookRepository.normalizeStatuses()
+            return added
         }
 
         /** Импортирует список дескрипторов. Возвращает количество добавленных книг. */
@@ -42,13 +46,21 @@ class ScanFacade
             var added = 0
             for (d in descriptors) {
                 if (bookRepository.getBookBySourceUri(d.sourceUri) != null) continue
-                importOne(d)
-                added++
+                // Одна книга не должна валить весь скан (сбой сети/обогащения/обложки).
+                runCatching { importOne(d) }
+                    .onSuccess { added++ }
+                    .onFailure {
+                        // Сохраняем книгу даже без онлайн-обогащения: повторяем импорт в «бедном» режиме.
+                        runCatching { importOne(d, enrich = false) }.onSuccess { added++ }
+                    }
             }
             return added
         }
 
-        private suspend fun importOne(d: BookDescriptor) {
+        private suspend fun importOne(
+            d: BookDescriptor,
+            enrich: Boolean = true,
+        ) {
             val realId =
                 java.util.UUID
                     .randomUUID()
@@ -64,7 +76,7 @@ class ScanFacade
             var genre = meta.genre
             var year = meta.year
 
-            if (PlayerSettings.onlineEnrichment && (author.isNullOrBlank() || description.isNullOrBlank() || cover == null)) {
+            if (enrich && PlayerSettings.onlineEnrichment && (author.isNullOrBlank() || description.isNullOrBlank() || cover == null)) {
                 val online = enricher.enrich(title, author)
                 if (online != null) {
                     if (title.isBlank()) title = online.title
@@ -90,7 +102,7 @@ class ScanFacade
                     filesPresent = true,
                     fileType = d.type,
                     totalDurationMs = totalDurationMs,
-                    status = BookStatus.READING,
+                    status = BookStatus.WISHLIST,
                     sourceKind = d.sourceKind,
                     originalPath = null,
                     manuallyEdited = false,

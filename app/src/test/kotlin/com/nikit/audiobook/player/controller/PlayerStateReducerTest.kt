@@ -1,17 +1,21 @@
 package com.nikit.audiobook.player.controller
 
 import com.google.common.truth.Truth.assertThat
+import com.nikit.audiobook.player.effects.EqualizerPreset
 import org.junit.Test
 
 class PlayerStateReducerTest {
     @Test fun loadBookThenPlayUpdates() {
         var s = PlayerUiState()
-        s = PlayerStateReducer.reduce(s, PlayerEvent.BookLoaded("b1", "Дюна", 3600_000, 0, true))
+        s = PlayerStateReducer.reduce(s, PlayerEvent.BookLoaded("b1", "Дюна", null, null, 3600_000, 0, true, globalDurationMs = 3600_000))
         s = PlayerStateReducer.reduce(s, PlayerEvent.IsPlayingChanged(true))
         assertThat(s.bookId).isEqualTo("b1")
         assertThat(s.title).isEqualTo("Дюна")
         assertThat(s.isPlaying).isTrue()
-        assertThat(s.durationMs).isEqualTo(3600_000L)
+        // Длительность текущей главы выясняется плеером в tick (DurationChanged);
+        // при загрузке книги известна только глобальная длительность.
+        assertThat(s.durationMs).isEqualTo(0L)
+        assertThat(s.globalDurationMs).isEqualTo(3600_000L)
     }
 
     @Test fun positionAndChapterUpdate() {
@@ -28,6 +32,14 @@ class PlayerStateReducerTest {
         s = PlayerStateReducer.reduce(s, PlayerEvent.VolumeBoostChanged(1.5f))
         assertThat(s.speed).isEqualTo(2f)
         assertThat(s.volumeBoost).isEqualTo(1.5f)
+    }
+
+    @Test fun equalizerPresetUpdates() {
+        var s = PlayerUiState()
+        s = PlayerStateReducer.reduce(s, PlayerEvent.EqualizerChanged(EqualizerPreset.BASS_BOOST))
+        assertThat(s.equalizerPreset).isEqualTo(EqualizerPreset.BASS_BOOST)
+        s = PlayerStateReducer.reduce(s, PlayerEvent.EqualizerChanged(EqualizerPreset.FLAT))
+        assertThat(s.equalizerPreset).isEqualTo(EqualizerPreset.FLAT)
     }
 
     @Test fun sleepLeftNullable() {

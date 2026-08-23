@@ -88,4 +88,16 @@ class BookDaoTest {
             dao.deleteById("a")
             assertThat(dao.observeAll().first()).isEmpty()
         }
+
+    @Test fun markPlayed_setsStatusReadingAndKeepsCompleted() =
+        runTest {
+            dao.upsert(book("a"))
+            dao.markPlayed("a", 123L)
+            assertThat(dao.getById("a")!!.status).isEqualTo(BookStatus.READING)
+            assertThat(dao.getById("a")!!.lastPlayedAt).isEqualTo(123L)
+            dao.markCompleted("a", 200L)
+            dao.markPlayed("a", 300L)
+            // повторная отметка не сбрасывает COMPLETED
+            assertThat(dao.getById("a")!!.status).isEqualTo(BookStatus.COMPLETED)
+        }
 }
