@@ -110,7 +110,14 @@ class SettingsViewModel
                     runCatching { scanFacade.scanNow(uri) }
                 }
             result
-                .onSuccess { added -> lastMessage.value = if (added > 0) "Добавлено книг: $added" else "Новых книг не найдено" }
+                .onSuccess { r ->
+                    lastMessage.value =
+                        when {
+                            r.found == 0 -> "Книги не найдены: папка пуста или нет доступа к файлам"
+                            r.added > 0 -> "Найдено: ${r.found} · добавлено: ${r.added}"
+                            else -> "Найдено: ${r.found} новых нет (уже в каталоге)"
+                        }
+                }
                 .onFailure { lastMessage.value = "Ошибка скана: ${it.message}" }
             scanning.value = false
         }

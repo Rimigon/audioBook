@@ -31,14 +31,14 @@ class ScanFacade
         private val coverStore: com.nikit.audiobook.data.cover.CoverStore,
     ) {
         /** Сканирует папку [treeUri] и импортирует новые книги. */
-        suspend fun scanNow(treeUri: Uri): Int {
+        suspend fun scanNow(treeUri: Uri): ScanResult {
             val nodes = folderScanner.buildTree(treeUri)
             val descriptors = BookClassifier.classify(nodes)
             val added = importDescriptors(descriptors)
             // Старые сборки помечали все импортированные книги как READING ошибочно —
             // возвращаем WISHLIST тем, у кого нет реального прогресса прослушивания.
             bookRepository.normalizeStatuses()
-            return added
+            return ScanResult(found = descriptors.size, added = added)
         }
 
         /** Импортирует список дескрипторов. Возвращает количество добавленных книг. */
@@ -135,3 +135,9 @@ class ScanFacade
                 }
             }
     }
+
+/** Итог сканирования: сколько книг распознано и сколько новых импортировано. */
+data class ScanResult(
+    val found: Int,
+    val added: Int,
+)
