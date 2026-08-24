@@ -12,12 +12,14 @@ import com.nikit.audiobook.player.work.RescanScheduler
 import com.nikit.audiobook.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -103,7 +105,11 @@ class SettingsViewModel
             }
             scanning.value = true
             lastMessage.value = null
-            runCatching { scanFacade.scanNow(uri) }
+            val result =
+                withContext(Dispatchers.IO) {
+                    runCatching { scanFacade.scanNow(uri) }
+                }
+            result
                 .onSuccess { added -> lastMessage.value = if (added > 0) "Добавлено книг: $added" else "Новых книг не найдено" }
                 .onFailure { lastMessage.value = "Ошибка скана: ${it.message}" }
             scanning.value = false
