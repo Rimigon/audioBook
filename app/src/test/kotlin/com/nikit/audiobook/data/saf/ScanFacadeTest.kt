@@ -90,7 +90,7 @@ class ScanFacadeTest {
     @Test fun importFolderCreatesBookWithChapters() =
         runTest {
             val added = facade.importDescriptors(listOf(folder("Дюна", "01.mp3", "02.mp3")))
-            assertThat(added).isEqualTo(1)
+            assertThat(added.added).isEqualTo(1)
             val books = repo.observeAll().first()
             assertThat(books).hasSize(1)
             assertThat(books.single().title).isEqualTo("Дюна")
@@ -103,7 +103,8 @@ class ScanFacadeTest {
             val d = folder("Дюна", "01.mp3")
             facade.importDescriptors(listOf(d))
             val added2 = facade.importDescriptors(listOf(d))
-            assertThat(added2).isEqualTo(0)
+            assertThat(added2.added).isEqualTo(0)
+            assertThat(added2.skipped).isEqualTo(1)
             assertThat(repo.observeAll().first()).hasSize(1)
         }
 

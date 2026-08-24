@@ -101,6 +101,7 @@ class SettingsViewModel
                 }
             if (!granted) {
                 lastMessage.value = "Нет доступа к папке — выберите её заново"
+                crashLogger.write(RuntimeException("SCAN-TRACE: grant missing for $uri"))
                 return
             }
             scanning.value = true
@@ -111,14 +112,20 @@ class SettingsViewModel
                 }
             result
                 .onSuccess { r ->
+                    crashLogger.write(
+                        RuntimeException("SCAN-TRACE: uri=$uri found=${r.found} added=${r.added} skipped=${r.skipped} failures=${r.failures}"),
+                    )
                     lastMessage.value =
                         when {
                             r.found == 0 -> "Книги не найдены: папка пуста или нет доступа к файлам"
                             r.added > 0 -> "Найдено: ${r.found} · добавлено: ${r.added}"
                             else -> "Найдено: ${r.found} новых нет (уже в каталоге)"
-                        }
+                        } + if (r.failures.isNotEmpty()) " · ошибок: ${r.failures.size}" else ""
                 }
-                .onFailure { lastMessage.value = "Ошибка скана: ${it.message}" }
+                .onFailure { e ->
+                    crashLogger.write(RuntimeException("SCAN-TRACE: exception ${e.message}", e))
+                    lastMessage.value = "Ошибка скана: ${e.message}"
+                }
             scanning.value = false
         }
 

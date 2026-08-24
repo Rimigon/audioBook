@@ -32,29 +32,43 @@ class ScanFacade
     ) {
         /** Сканирует папку [treeUri] и импортирует новые книги. */
         suspend fun scanNow(treeUri: Uri): ScanResult {
-            val nodes = folderScanner.buildTree(treeUri)
+            val nodes =
+                runCatching { folderScanner.buildTree(treeUri) }.getOrElse {
+                    return ScanResult(found = 0, added = 0, failures = listOf("buildTree: ${it.message}"))
+                }
             val descriptors = BookClassifier.classify(nodes)
-            val added = importDescriptors(descriptors)
+            val r = importDescriptors(descriptors)
             // Старые сборки помечали все импортированные книги как READING ошибочно —
             // возвращаем WISHLIST тем, у кого нет реального прогресса прослушивания.
             bookRepository.normalizeStatuses()
-            return ScanResult(found = descriptors.size, added = added)
+            return r
         }
 
-        /** Импортирует список дескрипторов. Возвращает количество добавленных книг. */
-        suspend fun importDescriptors(descriptors: List<BookDescriptor>): Int {
+        /** Импортирует список дескрипторов. Возвращает итог: добавлено/пропущено/ошибки. */
+        suspend fun importDescriptors(descriptors: List<BookDescriptor>): ScanResult {
             var added = 0
+            var skipped = 0
+            val failures = mutableListOf<String>()
             for (d in descriptors) {
-                if (bookRepository.getBookBySourceUri(d.sourceUri) != null) continue
-                // Одна книга не должна валить весь скан (сбой сети/обогащения/обложки).
-                runCatching { importOne(d) }
-                    .onSuccess { added++ }
-                    .onFailure {
-                        // Сохраняем книгу даже без онлайн-обогащения: повторяем импорт в «бедном» режиме.
-                        runCatching { importOne(d, enrich = false) }.onSuccess { added++ }
+                try {
+                    if (bookRepository.getBookBySourceUri(d.sourceUri) != null) {
+                        skipped++
+                        continue
                     }
+                    // Одна книга не должна валить весь скан (сбой сети/обогащения/обложки).
+                    runCatching { importOne(d) }
+                        .onSuccess { added++ }
+                        .onFailure {
+                            // Сохраняем книгу даже без онлайн-обогащения: повторяем импорт в «бедном» режиме.
+                            runCatching { importOne(d, enrich = false) }
+                                .onSuccess { added++ }
+                                .onFailure { e2 -> failures += "${d.title}: ${e2.message ?: e2::class.java.simpleName}" }
+                        }
+                } catch (e: Exception) {
+                    failures += "${d.title}: ${e.message ?: e::class.java.simpleName}"
+                }
             }
-            return added
+            return ScanResult(found = descriptors.size, added = added, skipped = skipped, failures = failures)
         }
 
         private suspend fun importOne(
@@ -136,8 +150,11 @@ class ScanFacade
             }
     }
 
-/** Итог сканирования: сколько книг распознано и сколько новых импортировано. */
+/** Итог сканирования: сколько книг распознано, сколько новых импортировано,
+ *  сколько уже было в каталоге и какие книги не удалось импортировать (с причинами). */
 data class ScanResult(
     val found: Int,
     val added: Int,
+    val skipped: Int = 0,
+    val failures: List<String> = emptyList(),
 )
