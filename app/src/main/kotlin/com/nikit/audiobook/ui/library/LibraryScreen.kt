@@ -1,5 +1,6 @@
 package com.nikit.audiobook.ui.library
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,8 +25,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -35,10 +38,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +75,9 @@ fun LibraryScreen(
     val statusFilter by vm.statusFilter.collectAsState()
     val onlyPresent by vm.showOnlyPresent.collectAsState()
     val query by vm.searchQuery.collectAsState()
+    var selecting by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<String>()) }
+    var confirmBatchDelete by remember { mutableStateOf(false) }
     val continueBooks =
         books.filter { b ->
             val p = progress[b.id]
@@ -76,20 +86,40 @@ fun LibraryScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Библиотека", style = MaterialTheme.typography.headlineMedium) },
-                actions = {
-                    IconButton(onClick = { vm.setSort(nextSort(sort)) }) {
-                        Icon(Icons.Default.Sort, contentDescription = "Сортировка")
-                    }
-                    IconButton(onClick = { vm.toggleOnlyPresent() }) {
-                        Text(if (onlyPresent) "★" else "☆")
-                    }
-                    IconButton(onClick = onRescanClick) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Сканировать")
-                    }
-                },
-            )
+            if (selecting) {
+                TopAppBar(
+                    title = { Text("Выбрано: ${selectedIds.size}", style = MaterialTheme.typography.headlineSmall) },
+                    actions = {
+                        TextButton(onClick = {
+                            selectedIds = if (selectedIds.size == books.size) emptySet() else books.map { it.id }.toSet()
+                        }) { Text(if (selectedIds.size == books.size) "Снять все" else "Выбрать все") }
+                        TextButton(onClick = { confirmBatchDelete = true }, enabled = selectedIds.isNotEmpty()) {
+                            Text("Удалить")
+                        }
+                        IconButton(onClick = {
+                            selecting = false
+                            selectedIds = emptySet()
+                        }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Выйти из выбора")
+                        }
+                    },
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Библиотека", style = MaterialTheme.typography.headlineMedium) },
+                    actions = {
+                        IconButton(onClick = { vm.setSort(nextSort(sort)) }) {
+                            Icon(Icons.Default.Sort, contentDescription = "Сортировка")
+                        }
+                        IconButton(onClick = { vm.toggleOnlyPresent() }) {
+                            Text(if (onlyPresent) "★" else "☆")
+                        }
+                        IconButton(onClick = onRescanClick) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Сканировать")
+                        }
+                    },
+                )
+            }
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -173,11 +203,67 @@ fun LibraryScreen(
                         }
                     }
                     items(books, key = { it.id }) { book ->
-                        BookRow(book, progress[book.id]) { onBookClick(book.id) }
+                        BookRow(
+                            book = book,
+                            progress = progress[book.id],
+                            onClick = {
+                                if (selecting) {
+                                    selectedIds =
+                                        if (book.id in selectedIds) selectedIds - book.id else selectedIds + book.id
+                                } else {
+                                    onBookClick(book.id)
+                                }
+                            },
+                            selecting = selecting,
+                            selected = book.id in selectedIds,
+                            onLongClick = {
+                                if (!selecting) {
+                                    selecting = true
+                                    selectedIds = setOf(book.id)
+                                }
+                            },
+                        )
                     }
                 }
             }
         }
+    }
+
+    if (confirmBatchDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmBatchDelete = false },
+            title = { Text("Удалить ${selectedIds.size} книг?") },
+            text = {
+                Text(
+                    if (selectedIds.size > 1) {
+                        "Выберите, что сделать: удалить аудиофайлы с устройства (карточки останутся) или полностью убрать книги из каталога."
+                    } else {
+                        "Выберите, что сделать: удалить аудиофайлы с устройства (карточка останется) или полностью убрать книгу из каталога."
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val ids = selectedIds.toList()
+                    confirmBatchDelete = false
+                    selecting = false
+                    selectedIds = emptySet()
+                    vm.deleteFromCatalog(ids)
+                }) { Text("Удалить из каталога") }
+            },
+            dismissButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    TextButton(onClick = {
+                        val ids = selectedIds.toList()
+                        confirmBatchDelete = false
+                        selecting = false
+                        selectedIds = emptySet()
+                        vm.deleteFiles(ids)
+                    }) { Text("Удалить файлы с устройства") }
+                    TextButton(onClick = { confirmBatchDelete = false }) { Text("Отмена") }
+                }
+            },
+        )
     }
 }
 
@@ -242,23 +328,35 @@ private fun ContinueCard(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun BookRow(
     book: Book,
     progress: PlaybackProgress?,
     onClick: () -> Unit,
+    selecting: Boolean = false,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val started = progress != null && progress.percent > 0f && progress.percent < 0.99f
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = if (selected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+            ),
     ) {
         Row(
             Modifier.padding(10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (selecting) {
+                Checkbox(
+                    checked = selected,
+                    onCheckedChange = { onClick() },
+                )
+            }
             BookCover(book.title, book.coverPath, Modifier.size(width = 64.dp, height = 96.dp))
             Column(Modifier.weight(1f)) {
                 Text(

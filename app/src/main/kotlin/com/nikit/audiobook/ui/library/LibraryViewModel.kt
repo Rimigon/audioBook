@@ -8,6 +8,8 @@ import com.nikit.audiobook.data.saf.ScanSettings
 import com.nikit.audiobook.domain.model.Book
 import com.nikit.audiobook.domain.model.BookStatus
 import com.nikit.audiobook.domain.model.PlaybackProgress
+import com.nikit.audiobook.domain.usecase.DeleteBookFiles
+import com.nikit.audiobook.domain.usecase.DeleteBookFromCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +29,8 @@ class LibraryViewModel
         private val bookRepository: BookRepository,
         private val progressRepository: ProgressRepository,
         private val scanSettings: ScanSettings,
+        private val deleteBookFiles: DeleteBookFiles,
+        private val deleteBookFromCatalog: DeleteBookFromCatalog,
     ) : ViewModel() {
         val sort = MutableStateFlow(LibrarySort.RECENT)
         val statusFilter = MutableStateFlow<BookStatus?>(null)
@@ -70,6 +74,18 @@ class LibraryViewModel
         }
 
         fun dismissFromContinue(id: String) = viewModelScope.launch { scanSettings.dismissFromContinue(id) }
+
+        /** Массовое удаление: файлы с устройства (карточки остаются). */
+        fun deleteFiles(ids: List<String>) =
+            viewModelScope.launch {
+                ids.forEach { runCatching { deleteBookFiles(it) } }
+            }
+
+        /** Массовое удаление: книги навсегда из каталога. */
+        fun deleteFromCatalog(ids: List<String>) =
+            viewModelScope.launch {
+                ids.forEach { runCatching { deleteBookFromCatalog(it) } }
+            }
 
         fun setStatusFilter(s: BookStatus?) {
             statusFilter.value = s

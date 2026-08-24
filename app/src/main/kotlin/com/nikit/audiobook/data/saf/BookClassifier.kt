@@ -23,6 +23,10 @@ sealed class FsNode {
 
 private val AUDIO_EXT = setOf("mp3", "m4b", "m4a", "opus", "flac", "ogg", "aac", "wav")
 
+private val IMAGE_EXT = setOf("jpg", "jpeg", "png", "webp")
+
+private val PREFERRED_COVER = setOf("cover.jpg", "cover.png", "folder.jpg", "folder.png", "обложка.jpg", "обложка.png")
+
 fun isAudioFile(name: String): Boolean {
     val ext = name.substringAfterLast('.', "").lowercase()
     return ext in AUDIO_EXT
@@ -103,6 +107,7 @@ object BookClassifier {
                                 files = sorted.map { it.ref },
                                 sourceUri = node.uri,
                                 sourceKind = SourceKind.LOCAL_FOLDER,
+                                coverImage = node.children.firstImage(),
                             ),
                         )
                     }
@@ -127,6 +132,14 @@ object BookClassifier {
             sourceUri = ref.uri,
             sourceKind = SourceKind.LOCAL_FILE,
         )
+    }
+
+    /** Лучшая картинка-обложка среди файлов папки (сначала с каноничным именем, иначе первый jpg/png/webp). */
+    private fun List<FsNode>.firstImage(): AudioFileRef? {
+        val images = filterIsInstance<FsNode.File>().filter { it.name.lowercase() in PREFERRED_COVER || it.name.substringAfterLast('.', "").lowercase() in IMAGE_EXT }
+        if (images.isEmpty()) return null
+        val preferred = images.firstOrNull { it.name.lowercase() in PREFERRED_COVER }
+        return (preferred ?: images.first()).ref
     }
 }
 

@@ -7,4 +7,6 @@ data class BookDescriptor(
     val files: List<AudioFileRef>,
     val sourceUri: String,
     val sourceKind: SourceKind,
+    /** Обложка-файл (cover.jpg и т.п.) внутри папки книги, если есть. */
+    val coverImage: AudioFileRef? = null,
 )

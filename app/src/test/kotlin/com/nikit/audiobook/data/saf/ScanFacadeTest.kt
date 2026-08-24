@@ -77,6 +77,7 @@ class ScanFacadeTest {
                 enricher,
                 com.nikit.audiobook.data.cover
                     .CoverStore(ApplicationProvider.getApplicationContext(), okhttp3.OkHttpClient()),
+                ApplicationProvider.getApplicationContext(),
             )
     }
 

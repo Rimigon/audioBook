@@ -77,6 +77,16 @@ class BookClassifierTest {
     }
 
     @Test
+    fun folderWithCoverJpg_picksCoverImage() {
+        val tree =
+            listOf(
+                dir("Дюна", file("01.mp3"), FsNode.File("cover.jpg", AudioFileRef("uri://cover.jpg", "cover.jpg"))),
+            )
+        val books = BookClassifier.classify(tree)
+        assertThat(books.single().coverImage?.uri).isEqualTo("uri://cover.jpg")
+    }
+
+    @Test
     fun rootWithLooseM4bAndBookSubfolders_findsAllBooks() {
         // Регрессия: в корне наблюдения одиночный .m4b + подпапки-книги.
         // Раньше корень с аудиофайлом считался одной книгой и подпапки игнорировались.

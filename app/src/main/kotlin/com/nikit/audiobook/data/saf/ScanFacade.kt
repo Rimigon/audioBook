@@ -12,6 +12,7 @@ import com.nikit.audiobook.metadata.chapters.M4bChapterExtractor
 import com.nikit.audiobook.metadata.online.MetadataEnricher
 import com.nikit.audiobook.metadata.tags.TagReader
 import com.nikit.audiobook.player.controller.PlayerSettings
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +30,7 @@ class ScanFacade
         private val tagReader: TagReader,
         private val enricher: MetadataEnricher,
         private val coverStore: com.nikit.audiobook.data.cover.CoverStore,
+        @ApplicationContext private val context: android.content.Context,
     ) {
         /** Сканирует папку [treeUri] и импортирует новые книги. */
         suspend fun scanNow(treeUri: Uri): ScanResult {
@@ -87,6 +89,10 @@ class ScanFacade
             var author = meta.author
             var description: String? = meta.description ?: meta.album
             var cover: String? = meta.coverBytes?.let { coverStore.saveBytes(it, d.sourceUri) }
+            // В тегах обложки нет — берём файл-обложку из папки книги (cover.jpg и т.п.).
+            if (cover == null && d.coverImage != null) {
+                cover = readCoverBytes(d.coverImage.uri)?.let { coverStore.saveBytes(it, d.sourceUri) }
+            }
             var genre = meta.genre
             var year = meta.year
 
@@ -123,6 +129,11 @@ class ScanFacade
                 )
             bookRepository.upsert(book, chapters)
         }
+
+        private fun readCoverBytes(uri: String): ByteArray? =
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(uri))?.use { it.readBytes() }
+            }.getOrNull()
 
         private fun buildChapters(
             bookId: String,
