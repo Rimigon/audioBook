@@ -65,14 +65,39 @@ class BookClassifierTest {
     }
 
     @Test
-    fun folderWithAudioAndSubdirs_treatsAsFolder_ignoresSubdirs() {
+    fun dirWithAudioAndSubdirs_splitsSubdirAndLooseAudio() {
         val tree =
             listOf(
                 dir("X", file("x1.mp3"), dir("inner", file("y.mp3"))),
             )
         val books = BookClassifier.classify(tree)
-        assertThat(books).hasSize(1)
-        assertThat(books.single().files.map { it.name }).containsExactly("x1.mp3")
+        assertThat(books.map { it.title }).containsExactly("inner", "x1")
+        assertThat(books.first { it.title == "inner" }.type).isEqualTo(com.nikit.audiobook.domain.model.FileType.FOLDER)
+        assertThat(books.first { it.title == "x1" }.type).isEqualTo(com.nikit.audiobook.domain.model.FileType.SINGLE_FILE)
+    }
+
+    @Test
+    fun rootWithLooseM4bAndBookSubfolders_findsAllBooks() {
+        // Регрессия: в корне наблюдения одиночный .m4b + подпапки-книги.
+        // Раньше корень с аудиофайлом считался одной книгой и подпапки игнорировались.
+        val tree =
+            listOf(
+                dir(
+                    "root",
+                    file("audiobook.m4b"),
+                    dir("Дюна", file("01.mp3")),
+                    dir("Война и мир", file("01.mp3")),
+                ),
+            )
+        val books = BookClassifier.classify(tree)
+        assertThat(books.map { it.title })
+            .containsExactly("audiobook", "Дюна", "Война и мир")
+        assertThat(books.map { it.type })
+            .containsExactly(
+                com.nikit.audiobook.domain.model.FileType.M4B,
+                com.nikit.audiobook.domain.model.FileType.FOLDER,
+                com.nikit.audiobook.domain.model.FileType.FOLDER,
+            )
     }
 
     @Test

@@ -69,7 +69,15 @@ class ScanFacadeTest {
         val enricher = MetadataEnricher(FakeCacheDao(), listOf(NullSource()))
         // FolderScanner не используется в importDescriptors — передаём заглушку через недоступный конструктор?
         // Создаём фасад через реальный FolderScanner (Context) — он не вызывается в этом тесте.
-        facade = ScanFacade(repo, FolderScanner(ApplicationProvider.getApplicationContext()), FakeTagReader(), enricher, com.nikit.audiobook.data.cover.CoverStore(ApplicationProvider.getApplicationContext(), okhttp3.OkHttpClient()))
+        facade =
+            ScanFacade(
+                repo,
+                FolderScanner(ApplicationProvider.getApplicationContext()),
+                FakeTagReader(),
+                enricher,
+                com.nikit.audiobook.data.cover
+                    .CoverStore(ApplicationProvider.getApplicationContext(), okhttp3.OkHttpClient()),
+            )
     }
 
     @After fun teardown() {

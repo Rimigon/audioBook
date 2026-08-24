@@ -83,37 +83,50 @@ object BookClassifier {
                     node.children
                         .filterIsInstance<FsNode.File>()
                         .filter { isAudioFile(it.name) }
-                if (audioChildren.isNotEmpty()) {
-                    val sorted = audioChildren.sortedWith(NaturalOrder)
-                    out.add(
-                        BookDescriptor(
-                            title = node.name,
-                            type = FileType.FOLDER,
-                            files = sorted.map { it.ref },
-                            sourceUri = node.uri,
-                            sourceKind = SourceKind.LOCAL_FOLDER,
-                        ),
-                    )
-                } else {
-                    for (c in node.children) if (c is FsNode.Dir) visit(c, out)
+                val subdirs = node.children.filterIsInstance<FsNode.Dir>()
+                when {
+                    subdirs.isNotEmpty() -> {
+                        // В папке есть подпапки — это каталог книг, а не сама книга.
+                        // Рекурсивно обрабатываем подпапки как книги, а прямые аудиофайлы
+                        // (например .m4b в корне наблюдения) — как отдельные книги.
+                        // Иначе одиночный m4b в корне «съел» бы все книги-подпапки.
+                        subdirs.forEach { visit(it, out) }
+                        audioChildren.forEach { f -> out.add(singleDescriptor(f.name, f.ref)) }
+                    }
+
+                    audioChildren.isNotEmpty() -> {
+                        val sorted = audioChildren.sortedWith(NaturalOrder)
+                        out.add(
+                            BookDescriptor(
+                                title = node.name,
+                                type = FileType.FOLDER,
+                                files = sorted.map { it.ref },
+                                sourceUri = node.uri,
+                                sourceKind = SourceKind.LOCAL_FOLDER,
+                            ),
+                        )
+                    }
                 }
             }
 
             is FsNode.File -> {
-                if (isAudioFile(node.name)) {
-                    val type = if (node.name.lowercase().endsWith(".m4b")) FileType.M4B else FileType.SINGLE_FILE
-                    out.add(
-                        BookDescriptor(
-                            title = stripExt(node.name),
-                            type = type,
-                            files = listOf(node.ref),
-                            sourceUri = node.ref.uri,
-                            sourceKind = SourceKind.LOCAL_FILE,
-                        ),
-                    )
-                }
+                if (isAudioFile(node.name)) out.add(singleDescriptor(node.name, node.ref))
             }
         }
+    }
+
+    private fun singleDescriptor(
+        name: String,
+        ref: AudioFileRef,
+    ): BookDescriptor {
+        val type = if (name.lowercase().endsWith(".m4b")) FileType.M4B else FileType.SINGLE_FILE
+        return BookDescriptor(
+            title = stripExt(name),
+            type = type,
+            files = listOf(ref),
+            sourceUri = ref.uri,
+            sourceKind = SourceKind.LOCAL_FILE,
+        )
     }
 }
 

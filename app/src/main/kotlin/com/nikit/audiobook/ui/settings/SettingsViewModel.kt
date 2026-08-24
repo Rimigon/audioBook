@@ -113,7 +113,9 @@ class SettingsViewModel
             result
                 .onSuccess { r ->
                     crashLogger.write(
-                        RuntimeException("SCAN-TRACE: uri=$uri found=${r.found} added=${r.added} skipped=${r.skipped} failures=${r.failures}"),
+                        RuntimeException(
+                            "SCAN-TRACE: uri=$uri found=${r.found} added=${r.added} skipped=${r.skipped} failures=${r.failures}",
+                        ),
                     )
                     lastMessage.value =
                         when {
@@ -121,8 +123,7 @@ class SettingsViewModel
                             r.added > 0 -> "Найдено: ${r.found} · добавлено: ${r.added}"
                             else -> "Найдено: ${r.found} новых нет (уже в каталоге)"
                         } + if (r.failures.isNotEmpty()) " · ошибок: ${r.failures.size}" else ""
-                }
-                .onFailure { e ->
+                }.onFailure { e ->
                     crashLogger.write(RuntimeException("SCAN-TRACE: exception ${e.message}", e))
                     lastMessage.value = "Ошибка скана: ${e.message}"
                 }
