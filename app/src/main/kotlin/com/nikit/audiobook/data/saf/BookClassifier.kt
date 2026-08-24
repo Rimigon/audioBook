@@ -136,7 +136,11 @@ object BookClassifier {
 
     /** Лучшая картинка-обложка среди файлов папки (сначала с каноничным именем, иначе первый jpg/png/webp). */
     private fun List<FsNode>.firstImage(): AudioFileRef? {
-        val images = filterIsInstance<FsNode.File>().filter { it.name.lowercase() in PREFERRED_COVER || it.name.substringAfterLast('.', "").lowercase() in IMAGE_EXT }
+        val images =
+            filterIsInstance<FsNode.File>().filter {
+                it.name.lowercase() in PREFERRED_COVER ||
+                    it.name.substringAfterLast('.', "").lowercase() in IMAGE_EXT
+            }
         if (images.isEmpty()) return null
         val preferred = images.firstOrNull { it.name.lowercase() in PREFERRED_COVER }
         return (preferred ?: images.first()).ref

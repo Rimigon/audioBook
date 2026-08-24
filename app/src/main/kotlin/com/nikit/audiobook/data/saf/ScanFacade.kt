@@ -15,6 +15,10 @@ import com.nikit.audiobook.player.controller.PlayerSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Связка: SAF-обход → классификация → чтение тегов → построение глав → онлайн-обогащение → репозиторий.
@@ -81,9 +85,12 @@ class ScanFacade
                 java.util.UUID
                     .randomUUID()
                     .toString()
-            val chapters = buildChapters(realId, d)
+            // Метаданные всех аудиофайлов читаем ОДИН раз и ПАРАЛЛЕЛЬНО (до 4 потоков):
+            // последовательный MediaMetadataRetriever на сотни глав — главный тормоз скана.
+            val metas = readAllMetadata(d.files)
+            val chapters = buildChapters(realId, d, metas)
             val meta =
-                d.files.firstOrNull()?.let { tagReader.read(it.uri) } ?: com.nikit.audiobook.domain.model
+                d.files.firstOrNull()?.let { metas[it.uri] } ?: com.nikit.audiobook.domain.model
                     .BookMetadata()
             var title = d.title
             var author = meta.author
@@ -135,27 +142,37 @@ class ScanFacade
                 context.contentResolver.openInputStream(Uri.parse(uri))?.use { it.readBytes() }
             }.getOrNull()
 
+        /** Метаданные всех аудиофайлов книги: параллельно, до 4 потоков. */
+        private suspend fun readAllMetadata(files: List<com.nikit.audiobook.domain.model.AudioFileRef>): Map<String, com.nikit.audiobook.domain.model.BookMetadata> =
+            coroutineScope {
+                val io = Dispatchers.IO.limitedParallelism(4)
+                files
+                    .map { ref -> async(io) { ref.uri to tagReader.read(ref.uri) } }
+                    .awaitAll()
+                    .toMap()
+            }
+
         private fun buildChapters(
             bookId: String,
             d: BookDescriptor,
+            metas: Map<String, com.nikit.audiobook.domain.model.BookMetadata>,
         ): List<Chapter> =
             when (d.type) {
                 FileType.FOLDER -> {
                     val built = ChapterBuilder.fromFiles(bookId, d.files)
-                    // заполнить длительность каждой главы реальным чтением тегов
                     built.mapIndexed { idx, ch ->
-                        val dur = tagReader.read(d.files[idx].uri).durationMs
+                        val dur = metas[d.files[idx].uri]?.durationMs ?: 0L
                         ch.copy(endMs = dur)
                     }
                 }
 
                 FileType.M4B -> {
-                    val dur = tagReader.read(d.files.first().uri).durationMs
+                    val dur = metas[d.files.first().uri]?.durationMs ?: 0L
                     M4bChapterExtractor.extract(bookId, d.files.first().uri, dur)
                 }
 
                 FileType.SINGLE_FILE -> {
-                    val dur = tagReader.read(d.files.first().uri).durationMs
+                    val dur = metas[d.files.first().uri]?.durationMs ?: 0L
                     listOf(ChapterBuilder.single(bookId, d.title, d.files.first().uri, dur))
                 }
             }
