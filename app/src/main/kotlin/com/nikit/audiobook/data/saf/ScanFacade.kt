@@ -13,12 +13,12 @@ import com.nikit.audiobook.metadata.online.MetadataEnricher
 import com.nikit.audiobook.metadata.tags.TagReader
 import com.nikit.audiobook.player.controller.PlayerSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Связка: SAF-обход → классификация → чтение тегов → построение глав → онлайн-обогащение → репозиторий.
@@ -143,7 +143,9 @@ class ScanFacade
             }.getOrNull()
 
         /** Метаданные всех аудиофайлов книги: параллельно, до 4 потоков. */
-        private suspend fun readAllMetadata(files: List<com.nikit.audiobook.domain.model.AudioFileRef>): Map<String, com.nikit.audiobook.domain.model.BookMetadata> =
+        private suspend fun readAllMetadata(
+            files: List<com.nikit.audiobook.domain.model.AudioFileRef>,
+        ): Map<String, com.nikit.audiobook.domain.model.BookMetadata> =
             coroutineScope {
                 val io = Dispatchers.IO.limitedParallelism(4)
                 files
