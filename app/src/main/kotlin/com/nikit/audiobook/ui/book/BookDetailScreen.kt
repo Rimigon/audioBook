@@ -1,5 +1,6 @@
 package com.nikit.audiobook.ui.book
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,8 +50,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -197,6 +200,7 @@ private fun BookHeader(
     onAddBookmark: () -> Unit,
     onSetStatus: (BookStatus) -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
@@ -228,6 +232,23 @@ private fun BookHeader(
                     style = MaterialTheme.typography.headlineSmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable {
+                                val cm =
+                                    context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as
+                                        android.content.ClipboardManager
+                                cm.setPrimaryClip(
+                                    android.content.ClipData.newPlainText("book-title", data.book.title),
+                                )
+                                android.widget.Toast
+                                    .makeText(
+                                        context,
+                                        "Название скопировано",
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
+                            },
                 )
                 data.book.author?.let {
                     Text(
